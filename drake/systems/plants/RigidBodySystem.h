@@ -164,23 +164,120 @@ class DRAKERBSYSTEM_EXPORT RigidBodySystem {
 
   virtual ~RigidBodySystem() {}
 
-  void addRobotFromURDFString(
-      const std::string& xml_string, const std::string& root_dir = ".",
+  /**
+   * Adds the robot model specified as a URDF string to this RigidBodySystem.
+   *
+   * @param urdf_string The string containing the URDF model.
+   * @param floating_base_type The type of the joint used in the
+   * foating virtual 6 DoF that connects the robot models to the world.
+   * By default, this is DrakeJoint::QUATERNION.
+   * @param pose_of_model_in_world Transform giving the pose of the file's
+   * model frame expressed in the world frame. By default this is identity.
+   * @return The number of robot models added. Since this method works with
+   * a URDF model, the return value will either be 1 or 0.
+   */
+  int AddRobotFromURDFString(
+      const std::string& urdf_string, const std::string& root_dir = ".",
       const DrakeJoint::FloatingBaseType floating_base_type =
-          DrakeJoint::ROLLPITCHYAW);
-  void addRobotFromURDF(
-      const std::string& urdf_filename,
+          DrakeJoint::ROLLPITCHYAW,
+      const Eigen::Isometry3d pose_of_model_in_world);
+
+  /**
+   * Adds the robot model specified in an URDF file to this RigidBodySystem.
+   *
+   * @param file_name The name of the URDF file containing the robot model.
+   * @param floating_base_type The type of the joint used in the
+   * foating virtual 6 DoF that connects the robot models to the world.
+   * By default, this is DrakeJoint::QUATERNION.
+   * @param pose_of_model_in_world Transform giving the pose of the file's
+   * model frame expressed in the world frame. By default this is identity.
+   * @return The number of robot models added. Since this method works with
+   * a URDF file, the return value will either be 1 or 0.
+   */
+  int AddRobotFromURDF(
+      const std::string& file_name,
+      const DrakeJoint::FloatingBaseType floating_base_type =
+          DrakeJoint::QUATERNION,
+      const Eigen::Isometry3d pose_of_model_in_world);
+
+  /**
+   * Adds the robot model specified in an URDF file to this RigidBodySystem.
+   *
+   * @param file_name The name of the URDF file containing the robot model.
+   * @param floating_base_type The type of the joint used in the
+   * foating virtual 6 DoF that connects the robot models to the world.
+   * By default, this is DrakeJoint::QUATERNION.
+   * @param pose_of_model_in_world Transform giving the pose of the file's
+   * model frame expressed in the world frame. By default this is identity.
+   * @return The number of robot models added. Since this method works with
+   * a URDF file, the return value will either be 1 or 0.
+   */
+  int AddRobotFromURDF(
+      const std::string& file_name,
+      const DrakeJoint::FloatingBaseType floating_base_type =
+          DrakeJoint::QUATERNION,
+      std::shared_ptr<RigidBodyFrame> weld_to_frame);
+
+  /**
+   * Adds the robot models specified in an SDF file to this RigidBodySystem.
+   * Note that this method only adds models whose dynamics are enabled.
+   * Static models like ground planes or height maps will need to be
+   * added separately by calling getRigidBodyTree()->addCollisionElement().
+   *
+   * @param file_name The name of the SDF file containing the robot models.
+   * @param floating_base_type The type of the joint used in the
+   * foating virtual 6 DoF that connects the robot models to the world.
+   * By default, this is DrakeJoint::QUATERNION.
+   * @param pose_of_model_in_world Transform giving the pose of the file's
+   * model frame expressed in the world frame. By default this is identity.
+   * @return The number of robot models added.
+   */
+  int AddRobotsFromSDF(
+      const std::string& file_name,
+      const DrakeJoint::FloatingBaseType floating_base_type =
+          DrakeJoint::QUATERNION,
+      const Eigen::Isometry3d pose_of_model_in_world);
+
+  /**
+   * Adds the robot models specified in a file to this RigidBodySystem.
+   * Note that this method only adds models whose dynamics are enabled.
+   * Static models like ground planes or height maps will need to be
+   * added separately by calling getRigidBodyTree()->addCollisionElement().
+   *
+   * @param file_name The name of the file containing the robot model(s).
+   * @param floating_base_type The type of the joint used in the
+   * foating virtual 6 DoF that connects the robot models to the world.
+   * By default, this is DrakeJoint::QUATERNION.
+   * @param weld_to_frame The frame to which the robot models should be
+   * welded.
+   * @return The number of robot models added.
+   */
+  int AddRobotsFromFile(
+      const std::string& file_name,
       const DrakeJoint::FloatingBaseType floating_base_type =
           DrakeJoint::QUATERNION,
       std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
-  void addRobotFromSDF(const std::string& sdf_filename,
-                       const DrakeJoint::FloatingBaseType floating_base_type =
-                           DrakeJoint::QUATERNION);
-  void addRobotFromFile(
-      const std::string& filename,
+
+  /**
+   * Adds the robot models specified in a file to this RigidBodySystem.
+   * Note that this method only adds models whose dynamics are enabled.
+   * Static models like ground planes or height maps will need to be
+   * added separately by calling getRigidBodyTree()->addCollisionElement().
+   *
+   * @param file_name The name of the file containing the robot model(s).
+   * @param floating_base_type The type of the joint used in the
+   * foating virtual 6 DoF that connects the robot models to the world.
+   * By default, this is DrakeJoint::QUATERNION.
+   * @param pose_of_model_in_world Transform giving the pose of the file's
+   * model frame expressed in the world frame.
+   * @return The number of robot models added.
+   */
+  int AddRobotsFromFile(
+      const std::string& file_name,
       const DrakeJoint::FloatingBaseType floating_base_type =
           DrakeJoint::QUATERNION,
-      std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
+      const Eigen::Isometry3d pose_of_model_in_world =
+        Eigen::Isometry3d::Identity());
 
   void addForceElement(std::shared_ptr<RigidBodyForceElement> f) {
     // std::cout << "RigidBodySystem::addForceElement: Method called!" <<

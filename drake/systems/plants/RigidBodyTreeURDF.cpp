@@ -546,10 +546,167 @@ void parseFrame(RigidBodyTree* model, XMLElement* node) {
   model->addFrame(frame);
 }
 
-void parseRobot(RigidBodyTree* model, XMLElement* node,
-                const PackageMap& package_map, const string& root_dir,
-                const DrakeJoint::FloatingBaseType floating_base_type,
-                std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr) {
+/**
+ * Adds the floating joint that connects a robot model to the rest of the
+ * rigid body tree.
+ *
+ * An exception is thrown if the floating base type is unknown or if there
+ * is no robot in the rigid body model to which to add the floating joint.
+ *
+ * @param model A pointer to the RigidBodyTree model to which to add the
+ * floating joint.
+ * @param floating_joint_name The name of the floating joint.
+ * @param floating_base_type The type of the floating base joint.
+ * @param body The existing body in the rigid body tree to which to connect
+ * the robot model.
+ * @param transform_to_body The transform giving the pose of the robot's model
+ * expressed in the body's coordinate frame.
+ */
+void AddFloatingJoint(RigidBodyTree* model,
+  const std::string & floating_joint_name,
+  const DrakeJoint::FloatingBaseType floating_base_type,
+  const std::shared_ptr<RigidBody> body, const Isometry3d transform_to_body) {
+
+  // Instantes a boolean variable that keeps track of whether a floating
+  // joint was aded to the RigidBodyTree. This is needed to determine whether
+  // this method is successful.
+  bool floating_joint_added = false;
+
+  // Search through all bodies in the rigid body tree. Assume the floating joint
+  // should be added to all parent-less bodies in the rigid body tree.
+  for (unsigned int i = 1; i < model->bodies.size(); i++) {
+    if (model->bodies[i]->parent == nullptr) {
+
+      // We have successfully identified a parent-less body in the RigidBodyTree.
+      // Proceed to attach it to the tree using a floating joint.
+      model->bodies[i]->parent = body;
+      switch (floating_base_type) {
+        case DrakeJoint::FIXED: {
+          unique_ptr<DrakeJoint> joint(
+              new FixedJoint(floating_joint_name, transform_to_body));
+          model->bodies[i]->setJoint(move(joint));
+        } break;
+        case DrakeJoint::ROLLPITCHYAW: {
+          unique_ptr<DrakeJoint> joint(new RollPitchYawFloatingJoint(
+              floating_joint_name, transform_to_body));
+          model->bodies[i]->setJoint(move(joint));
+        } break;
+        case DrakeJoint::QUATERNION: {
+          unique_ptr<DrakeJoint> joint(new QuaternionFloatingJoint(
+              floating_joint_name, transform_to_body));
+          model->bodies[i]->setJoint(move(joint));
+        } break;
+        default:
+          throw std::runtime_error("unknown floating base type");
+      }
+
+      // Record the fact that we've successfully added a floating joint
+      // to the rigid body tree.
+      floating_joint_added = true;
+    }
+  }
+
+  // Throws an exception if no floating joints were added to the model.
+  if (!floating_joint_added)
+    throw std::runtime_error(
+      "Failed to add floating joint to the rigid body tree!");
+}
+
+/**
+ * Adds the floating joint that connects a robot model to the rest of the
+ * rigid body tree. If the weld_to_frame parameter
+ * is nullptr, simply connect the robot to the world with zero offset.
+ *
+ * Note that this method should only be called after AddRobot() is called
+ * meaning the robot's bodies are in the RigidBodyTree but not yet attached
+ * to anything in the tree.
+ *
+ * An exception is thrown if the floating base type is unknown or if there
+ * is no robot in the rigid body model to which to add the floating joint.
+ *
+ * @param model A pointer to the RigidBodyTree model to which to add the
+ * floating joint.
+ * @param floating_base_type The type of the floating base joint.
+ * @param weld_to_frame The frame to which to which to attach the floating joint.
+ * This parameter may be nullptr.
+ */
+void AddFloatingJoint(RigidBodyTree* model,
+  const DrakeJoint::FloatingBaseType floating_base_type,
+  const std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr) {
+
+  // The following lines of code instantiates and initializes some important
+  // local variables.
+
+  std::string floating_joint_name;
+  std::shared_ptr<RigidBody> weld_to_body;
+  Isometry3d transform_to_body;
+
+  if (weld_to_frame == nullptr) {
+    // If no weld_to_frame parameter is provided, weld the robot to the world.
+    weld_to_body = model->bodies[0];
+    floating_joint_name = "base";
+    transform_to_body = Isometry3d::Identity();
+  } else {
+    if (weld_to_frame->name.compare("world") == 0) {
+      // The robot is being welded to the world. Thus, ignore the "body"
+      // variable within weld_to_frame. Instead, only use the transform_to_body
+      // variable to initialize the robot at the desired location in the world.
+      weld_to_body = model->bodies[0];  // the world's body
+      floating_joint_name = "base";
+      transform_to_body = weld_to_frame->transform_to_body;
+    } else {
+      // The robot is being welded to another body in the RigidBodyTree.
+      // Use both the body and transform_to_body variables contained
+      // within weld_to_frame.
+      weld_to_body = weld_to_frame->body;
+      transform_to_body = weld_to_frame->transform_to_body;
+      floating_joint_name = "weld";
+    }
+  }
+
+  AddFloatingJoint(model, floating_joint_name, floating_base_type, weld_to_body,
+    transform_to_body);
+}
+
+/**
+ * Adds the floating joint that connects a robot model to the world link in the
+ * rigid body tree.
+ *
+ * Note that this method should only be called after AddRobot() is called
+ * meaning the robot's bodies are in the RigidBodyTree but not yet attached
+ * to anything in the tree.
+ *
+ * An exception is thrown if the floating base type is unknown or if there
+ * is no robot in the rigid body model to which to add the floating joint.
+ *
+ * @param model A pointer to the RigidBodyTree model to which to add the
+ * floating joint.
+ * @param floating_base_type The type of the floating base joint.
+ * @param pose_of_model_in_world The frame to which to which to attach the
+ * floating joint. This parameter may be nullptr.
+ */
+void AddFloatingJoint(RigidBodyTree* model,
+  const DrakeJoint::FloatingBaseType floating_base_type,
+  const Eigen::Isometry3d pose_of_model_in_world = Isometry3d::Identity()) {
+
+  // The name of the floating joint is "base" and model->bodies[0] is the world
+  // link in the rigid body tree.
+  AddFloatingJoint(model, "base", floating_base_type, model->bodies[0],
+    pose_of_model_in_world);
+}
+
+/**
+ * Adds a robot to the rigid body tree.
+ *
+ * @param model A pointer to the rigid body tree to which to add the robot.
+ * @param node The XML node containing the URDF specifications.
+ * @param package_map A map of all the ROS packages available on the local system.
+ * This is needed to find meshes stored in the ROS ecosystem.
+ * @param root_dir The root directory in which to search for meshes.
+ */
+void AddRobot(RigidBodyTree* model, XMLElement* node,
+                const PackageMap& package_map,
+                const string& root_dir) {
   if (!node->Attribute("name"))
     throw runtime_error("Error: your robot must have a name attribute");
 
@@ -597,59 +754,22 @@ void parseRobot(RigidBodyTree* model, XMLElement* node,
   for (XMLElement* frame_node = node->FirstChildElement("frame"); frame_node;
        frame_node = frame_node->NextSiblingElement("frame"))
     parseFrame(model, frame_node);
-
-  std::string floating_joint_name;
-  std::shared_ptr<RigidBody> weld_to_body;
-  Isometry3d transform_to_body;
-  if (!weld_to_frame) {
-    // If no body was given for us to weld to, then weld to the world
-    weld_to_body = model->bodies[0];
-    floating_joint_name = "base";
-    transform_to_body = Isometry3d::Identity();
-  } else {
-    // If the robot is being welded to the world, ignore the "body" variable
-    // within weld_to_frame. Instead, only use the transform_to_body
-    // variable to initialize the robot at the desired location in the world.
-    if (weld_to_frame->name.compare("world") == 0) {
-      weld_to_body = model->bodies[0];  // the world's body
-      floating_joint_name = "base";
-      transform_to_body = weld_to_frame->transform_to_body;
-    } else {
-      weld_to_body = weld_to_frame->body;
-      transform_to_body = weld_to_frame->transform_to_body;
-      floating_joint_name = "weld";
-    }
-  }
-
-  for (unsigned int i = 1; i < model->bodies.size(); i++) {
-    if (model->bodies[i]->parent == nullptr) {  // attach the root nodes to the
-                                                // world with a floating base
-                                                // joint
-      model->bodies[i]->parent = weld_to_body;
-      switch (floating_base_type) {
-        case DrakeJoint::FIXED: {
-          unique_ptr<DrakeJoint> joint(
-              new FixedJoint(floating_joint_name, transform_to_body));
-          model->bodies[i]->setJoint(move(joint));
-        } break;
-        case DrakeJoint::ROLLPITCHYAW: {
-          unique_ptr<DrakeJoint> joint(new RollPitchYawFloatingJoint(
-              floating_joint_name, transform_to_body));
-          model->bodies[i]->setJoint(move(joint));
-        } break;
-        case DrakeJoint::QUATERNION: {
-          unique_ptr<DrakeJoint> joint(new QuaternionFloatingJoint(
-              floating_joint_name, transform_to_body));
-          model->bodies[i]->setJoint(move(joint));
-        } break;
-        default:
-          throw std::runtime_error("unknown floating base type");
-      }
-    }
-  }
 }
 
-void parseURDF(RigidBodyTree* model, XMLDocument* xml_doc,
+/**
+ * Parses a URDF model of a robot and adds it to the rigid body tree. It uses
+ * a pointer to a RigidBodyFrame object to define how the robot is connected to
+ * the rigid body tree.
+ *
+ * @param model A pointer to the rigid body tree to which to add the robot.
+ * @param xml_doc The XML document containing the URDF model.
+ * @param packag_map Holds the ROS packages in which to search for meshes.
+ * @param root_dir The root directory from which to search for meshes.
+ * @param floating_base_type The type of joint used to connect the robot
+ * to the world.
+ * @param weld_to_frame The frame to which the newly added robot is added.
+ */
+void ParseURDF(RigidBodyTree* model, XMLDocument* xml_doc,
                PackageMap& package_map, const string& root_dir,
                const DrakeJoint::FloatingBaseType floating_base_type,
                std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr) {
@@ -659,44 +779,98 @@ void parseURDF(RigidBodyTree* model, XMLDocument* xml_doc,
     throw std::runtime_error("ERROR: This urdf does not contain a robot tag");
   }
 
-  parseRobot(model, node, package_map, root_dir, floating_base_type,
-             weld_to_frame);
+  AddRobot(model, node, package_map, root_dir);
+  AddFloatingJoint(model, floating_base_type, weld_to_frame);
 
   model->compile();
 }
 
-void RigidBodyTree::addRobotFromURDFString(
-    const string& xml_string, const string& root_dir,
+/**
+ * Parses a URDF model of a robot and adds it to the rigid body tree. It uses
+ * an Eigen::Isometry3d object to define how the robot is connected to the
+ * rigid body tree's word.
+ *
+ * @param model A pointer to the rigid body tree to which to add the robot.
+ * @param xml_doc The XML document containing the URDF model.
+ * @param packag_map Holds the ROS packages in which to search for meshes.
+ * @param root_dir The root directory from which to search for meshes.
+ * @param floating_base_type The type of joint used to connect the robot
+ * to the world.
+ * @param pose_of_model_in_world Transform giving the pose of the file's
+ * model frame expressed in the world frame. By default this is identity.
+ */
+void ParseURDF(RigidBodyTree* model, XMLDocument* xml_doc,
+               PackageMap& package_map, const string& root_dir,
+               const DrakeJoint::FloatingBaseType floating_base_type,
+               const Eigen::Isometry3d pose_of_model_in_world
+                 = Isometry3d::Identity()) {
+  populatePackageMap(package_map);
+  XMLElement* node = xml_doc->FirstChildElement("robot");
+  if (!node) {
+    throw std::runtime_error("ERROR: This urdf does not contain a robot tag");
+  }
+
+  AddRobot(model, node, package_map, root_dir);
+  AddFloatingJoint(model, floating_base_type, pose_of_model_in_world);
+
+  model->compile();
+}
+
+int RigidBodyTree::AddRobotFromURDFString(
+    const string& urdf_string,
+    const string& root_dir,
     const DrakeJoint::FloatingBaseType floating_base_type,
     std::shared_ptr<RigidBodyFrame> weld_to_frame) {
+
+  // Instantiates a temporary PackageMap object.
   PackageMap package_map;
-  addRobotFromURDFString(xml_string, package_map, root_dir, floating_base_type,
-                         weld_to_frame);
+
+  // Calls the other AddRobotFromURDFString() method that accepts a
+  // package_map parameter.
+  return AddRobotFromURDFString(urdf_string, package_map, root_dir,
+    floating_base_type, weld_to_frame);
 }
 
-void RigidBodyTree::addRobotFromURDFString(
-    const string& xml_string, PackageMap& package_map, const string& root_dir,
+int RigidBodyTree::AddRobotFromURDFString(
+    const string& urdf_string,
+    PackageMap& package_map,
+    const string& root_dir,
     const DrakeJoint::FloatingBaseType floating_base_type,
     std::shared_ptr<RigidBodyFrame> weld_to_frame) {
+
+  // Parses the XML string.
   XMLDocument xml_doc;
-  xml_doc.Parse(xml_string.c_str());
-  parseURDF(this, &xml_doc, package_map, root_dir, floating_base_type,
+  xml_doc.Parse(urdf_string.c_str());
+
+  // Parses the URDF file and adds the robot to the rigid body tree.
+  ParseURDF(this, &xml_doc, package_map, root_dir, floating_base_type,
             weld_to_frame);
+
+  // Returns 1 because one robot was added to this rigid body tree.
+  return 1;
 }
 
-void RigidBodyTree::addRobotFromURDF(
+int RigidBodyTree::AddRobotFromURDF(
     const string& urdf_filename,
     const DrakeJoint::FloatingBaseType floating_base_type,
     std::shared_ptr<RigidBodyFrame> weld_to_frame) {
+
+  // Instantiates a temporary PackageMap object.
   PackageMap package_map;
-  addRobotFromURDF(urdf_filename, package_map, floating_base_type,
+
+  // Calls the other AddRobotFromURDF() method that accepts a package_map
+  // parameter.
+  return AddRobotFromURDF(urdf_filename, package_map, floating_base_type,
                    weld_to_frame);
 }
 
-void RigidBodyTree::addRobotFromURDF(
-    const string& urdf_filename, PackageMap& package_map,
+int RigidBodyTree::AddRobotFromURDF(
+    const string& urdf_filename,
+    PackageMap& package_map,
     const DrakeJoint::FloatingBaseType floating_base_type,
     std::shared_ptr<RigidBodyFrame> weld_to_frame) {
+
+  // Loads the URDF file.
   XMLDocument xml_doc;
   xml_doc.LoadFile(urdf_filename.data());
   if (xml_doc.ErrorID()) {
@@ -704,12 +878,94 @@ void RigidBodyTree::addRobotFromURDF(
                              "\n" + xml_doc.ErrorName());
   }
 
+  // Computes the root directory
   string root_dir = ".";
   size_t found = urdf_filename.find_last_of("/\\");
   if (found != string::npos) {
     root_dir = urdf_filename.substr(0, found);
   }
 
-  parseURDF(this, &xml_doc, package_map, root_dir, floating_base_type,
+  // Parses the URDF file and adds the robot to the rigid body tree.
+  ParseURDF(this, &xml_doc, package_map, root_dir, floating_base_type,
             weld_to_frame);
+
+  // Returns 1 because one robot was added to this rigid body tree.
+  return 1;
+}
+
+int RigidBodyTree::AddRobotFromURDFStringIsometry3dPose(
+    const string& urdf_string,
+    const string& root_dir,
+    const DrakeJoint::FloatingBaseType floating_base_type,
+    const Eigen::Isometry3d pose_of_model_in_world) {
+
+  // Instantiates a temporary PackageMap object.
+  PackageMap package_map;
+
+  // Calls the other AddRobotFromURDFString() method that accepts a
+  // package_map parameter.
+  return AddRobotFromURDFStringIsometry3dPose(urdf_string, package_map,
+    root_dir, floating_base_type, pose_of_model_in_world);
+}
+
+int RigidBodyTree::AddRobotFromURDFStringIsometry3dPose(
+    const string& urdf_string,
+    PackageMap& package_map,
+    const string& root_dir,
+    const DrakeJoint::FloatingBaseType floating_base_type,
+    const Eigen::Isometry3d pose_of_model_in_world) {
+
+  // Parses the XML string.
+  XMLDocument xml_doc;
+  xml_doc.Parse(urdf_string.c_str());
+
+  // Parses the URDF file and adds the robot to the rigid body tree.
+  ParseURDF(this, &xml_doc, package_map, root_dir, floating_base_type,
+            pose_of_model_in_world);
+
+  // Returns 1 because one robot was added to this rigid body tree.
+  return 1;
+}
+
+int RigidBodyTree::AddRobotFromURDFIsometry3dPose(
+    const string& urdf_filename,
+    const DrakeJoint::FloatingBaseType floating_base_type,
+    const Eigen::Isometry3d pose_of_model_in_world) {
+
+  // Instantiates a temporary PackageMap object.
+  PackageMap package_map;
+
+  // Calls the other AddRobotFromURDF() method that accepts a package_map
+  // parameter.
+  return AddRobotFromURDFIsometry3dPose(urdf_filename, package_map,
+    floating_base_type, pose_of_model_in_world);
+}
+
+int RigidBodyTree::AddRobotFromURDFIsometry3dPose(
+    const string& urdf_filename,
+    PackageMap& package_map,
+    const DrakeJoint::FloatingBaseType floating_base_type,
+    const Eigen::Isometry3d pose_of_model_in_world) {
+
+  // Loads the URDF file.
+  XMLDocument xml_doc;
+  xml_doc.LoadFile(urdf_filename.data());
+  if (xml_doc.ErrorID()) {
+    throw std::runtime_error("failed to parse xml in file " + urdf_filename +
+                             "\n" + xml_doc.ErrorName());
+  }
+
+  // Computes the root directory
+  string root_dir = ".";
+  size_t found = urdf_filename.find_last_of("/\\");
+  if (found != string::npos) {
+    root_dir = urdf_filename.substr(0, found);
+  }
+
+  // Parses the URDF file and adds the robot to the rigid body tree.
+  ParseURDF(this, &xml_doc, package_map, root_dir, floating_base_type,
+            pose_of_model_in_world);
+
+  // Returns 1 because one robot was added to this rigid body tree.
+  return 1;
 }

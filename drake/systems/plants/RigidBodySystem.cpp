@@ -678,29 +678,44 @@ void parseSDF(RigidBodySystem& sys, XMLDocument* xml_doc) {
     parseSDFModel(sys, elnode);
 }
 
-void RigidBodySystem::addRobotFromURDFString(
+int RigidBodySystem::AddRobotFromURDFString(
     const string& xml_string, const string& root_dir,
-    const DrakeJoint::FloatingBaseType floating_base_type) {
-  // first add the urdf to the rigid body tree
-  tree->addRobotFromURDFString(xml_string, root_dir, floating_base_type);
+    const DrakeJoint::FloatingBaseType floating_base_type,
+    const Eigen::Isometry3d pose_of_model_in_world) {
 
-  // now parse additional tags understood by rigid body system (actuators,
-  // sensors, etc)
+  // This variable keeps track of the number of robot models added to the
+  // rigid body tree.
+  int num_robots_added = 0;
+
+  // First add the URDF model to the rigid body tree.
+  num_robots_added = tree->AddRobotFromURDFStringIsometry3dPose(xml_string, root_dir,
+    floating_base_type, pose_of_model_in_world);
+
+  // Next parse additional tags understood by rigid body system (e.g., actuators,
+  // sensors, etc).
   XMLDocument xml_doc;
   xml_doc.Parse(xml_string.c_str());
 
   parseURDF(*this, &xml_doc);
+
+  return num_robots_added;
 }
 
-void RigidBodySystem::addRobotFromURDF(
+int RigidBodySystem::AddRobotFromURDF(
     const string& urdf_filename,
     const DrakeJoint::FloatingBaseType floating_base_type,
     std::shared_ptr<RigidBodyFrame> weld_to_frame) {
-  // first add the urdf to the rigid body tree
-  tree->addRobotFromURDF(urdf_filename, floating_base_type, weld_to_frame);
 
-  // now parse additional tags understood by rigid body system (actuators,
-  // sensors, etc)
+  // This variable keeps track of the number of robot models added to the
+  // rigid body tree.
+  int num_robots_added = 0;
+
+  // First add the URDF model to the rigid body tree.
+  num_robots_added = tree->AddRobotFromURDFIsometry3dPose(urdf_filename, floating_base_type,
+    weld_to_frame);
+
+  // Next parse additional tags understood by rigid body system (e.g., actuators,
+  // sensors, etc).
   XMLDocument xml_doc;
   xml_doc.LoadFile(urdf_filename.data());
   if (xml_doc.ErrorID() != XML_SUCCESS) {
@@ -708,16 +723,52 @@ void RigidBodySystem::addRobotFromURDF(
                              "\n" + xml_doc.ErrorName());
   }
   parseURDF(*this, &xml_doc);
+
+  return num_robots_added;
 }
 
-void RigidBodySystem::addRobotFromSDF(
+
+int RigidBodySystem::AddRobotFromURDF(
+    const string& urdf_filename,
+    const DrakeJoint::FloatingBaseType floating_base_type,
+    const Eigen::Isometry3d pose_of_model_in_world) {
+
+  // This variable keeps track of the number of robot models added to the
+  // rigid body tree.
+  int num_robots_added = 0;
+
+  // First add the URDF model to the rigid body tree.
+  num_robots_added = tree->AddRobotFromURDFIsometry3dPose(urdf_filename, floating_base_type,
+    pose_of_model_in_world);
+
+  // Next parse additional tags understood by rigid body system (e.g., actuators,
+  // sensors, etc).
+  XMLDocument xml_doc;
+  xml_doc.LoadFile(urdf_filename.data());
+  if (xml_doc.ErrorID() != XML_SUCCESS) {
+    throw std::runtime_error("failed to parse xml in file " + urdf_filename +
+                             "\n" + xml_doc.ErrorName());
+  }
+  parseURDF(*this, &xml_doc);
+
+  return num_robots_added;
+}
+
+int RigidBodySystem::AddRobotsFromSDF(
     const string& sdf_filename,
-    const DrakeJoint::FloatingBaseType floating_base_type) {
-  tree->addRobotFromSDF(sdf_filename, floating_base_type);
+    const DrakeJoint::FloatingBaseType floating_base_type,
+    const Eigen::Isometry3d pose_of_model_in_world) {
 
-  // now parse additional tags understood by rigid body system (actuators,
-  // sensors, etc)
+  // This variable keeps track of the number of robot models added to the
+  // rigid body tree.
+  int num_robots_added = 0;
 
+  // First add the SDF models to the rigid body tree.
+  num_robots_added = tree->AddRobotsFromSDF(sdf_filename, floating_base_type,
+    pose_of_model_in_world);
+
+  // Next parse additional tags understood by rigid body system (e.g., actuators,
+  // sensors, etc).
   XMLDocument xml_doc;
   xml_doc.LoadFile(sdf_filename.data());
   if (xml_doc.ErrorID() != XML_SUCCESS) {
@@ -725,23 +776,64 @@ void RigidBodySystem::addRobotFromSDF(
                              "\n" + xml_doc.ErrorName());
   }
   parseSDF(*this, &xml_doc);
+
+  return num_robots_added;
 }
 
-void RigidBodySystem::addRobotFromFile(
-    const std::string& filename,
-    const DrakeJoint::FloatingBaseType floating_base_type,
-    std::shared_ptr<RigidBodyFrame> weld_to_frame) {
-  spruce::path p(filename);
+int RigidBodySystem::AddRobotsFromFile(
+  const std::string& file_name,
+  const DrakeJoint::FloatingBaseType floating_base_type,
+  std::shared_ptr<RigidBodyFrame> weld_to_frame) {
+
+  // This variable keeps track of the number of robot models added to the
+  // rigid body tree.
+  int num_robots_added = 0;
+
+  // Get the file name's extension in lower case.
+  spruce::path p(file_name);
   auto ext = p.extension();
 
   std::transform(ext.begin(), ext.end(), ext.begin(),
                  ::tolower);  // convert to lower case
 
+  // Determine whether the extension is "urdf" or "sdf" and call the
+  // corresponding AddRobotFromXX() method for handling the particular file type.
   if (ext.compare(".urdf") == 0) {
-    addRobotFromURDF(filename, floating_base_type, weld_to_frame);
+    num_robots_added = AddRobotFromURDF(file_name, floating_base_type, weld_to_frame);
   } else if (ext.compare(".sdf") == 0) {
-    addRobotFromSDF(filename, floating_base_type);
+    num_robots_added = AddRobotsFromSDF(file_name, floating_base_type, weld_to_frame);
   } else {
-    throw runtime_error("unknown file extension: " + ext);
+    throw runtime_error("Unknown file extension: " + ext);
   }
+
+  return num_robots_added;
+}
+
+int RigidBodySystem::AddRobotsFromFile(
+  const std::string& file_name,
+  const DrakeJoint::FloatingBaseType floating_base_type,
+  const Eigen::Isometry3d pose_of_model_in_world) {
+
+  // This variable keeps track of the number of robot models added to the
+  // rigid body tree.
+  int num_robots_added = 0;
+
+  // Get the file name's extension in lower case.
+  spruce::path p(file_name);
+  auto ext = p.extension();
+
+  std::transform(ext.begin(), ext.end(), ext.begin(),
+                 ::tolower);  // convert to lower case
+
+  // Determine whether the extension is "urdf" or "sdf" and call the
+  // corresponding AddRobotFromXX() method for handling the particular file type.
+  if (ext.compare(".urdf") == 0) {
+    num_robots_added = AddRobotFromURDF(file_name, floating_base_type, pose_of_model_in_world);
+  } else if (ext.compare(".sdf") == 0) {
+    num_robots_added = AddRobotsFromSDF(file_name, floating_base_type, pose_of_model_in_world);
+  } else {
+    throw runtime_error("Unknown file extension: " + ext);
+  }
+
+  return num_robots_added;
 }

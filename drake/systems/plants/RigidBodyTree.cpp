@@ -58,7 +58,7 @@ RigidBodyTree::RigidBodyTree(
 
   initialized = false;
 
-  addRobotFromURDF(urdf_filename, floating_base_type);
+  AddRobotFromURDF(urdf_filename, floating_base_type);
 }
 
 RigidBodyTree::RigidBodyTree(void)

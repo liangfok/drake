@@ -525,20 +525,28 @@ void parseSDFJoint(RigidBodyTree* model, std::string model_name,
   }
 }
 
-void parseModel(RigidBodyTree* model, XMLElement* node,
+void ParseModel(RigidBodyTree* model, XMLElement* node,
                 const PackageMap& package_map, const string& root_dir,
-                const DrakeJoint::FloatingBaseType floating_base_type) {
-  PoseMap pose_map;  // because sdf specifies almost everything in the global
-                     // (actually model) coordinates instead of relative
-                     // coordinates.  sigh...
+                const DrakeJoint::FloatingBaseType floating_base_type,
+                const Eigen::Isometry3d pose_of_model_in_world) {
+
+  // A pose map is needed because SDF specifies almost everything in the model's
+  // frame instead of relative coordinates.
+  PoseMap pose_map;
 
   if (!node->Attribute("name"))
     throw runtime_error("Error: your model must have a name attribute");
   string model_name = node->Attribute("name");
 
-  Isometry3d transform_to_world = Isometry3d::Identity();
+  // Implement double-offset to the rigid body tree's world. The SDF model's
+  // <pose> is the transform from the robot's root link to the robot's world
+  // frame. The pose_of_model_in_world parameter is a secondary transform that
+  // converts from the robot's world frame to the rigid body tree's world.
+  Isometry3d transform_to_model_world = Isometry3d::Identity();
   XMLElement* pose = node->FirstChildElement("pose");
-  if (pose) poseValueToTransform(pose, pose_map, transform_to_world);
+  if (pose) poseValueToTransform(pose, pose_map, transform_to_model_world);
+
+  Isometry3d transform_to_world = pose_of_model_in_world * transform_to_model_world;
 
   // parse link elements
   for (XMLElement* link_node = node->FirstChildElement("link"); link_node;
@@ -598,18 +606,20 @@ void parseModel(RigidBodyTree* model, XMLElement* node,
   // loop joint, and connecting the new free joint to the world
 }
 
-void parseWorld(RigidBodyTree* model, XMLElement* node,
+void ParseWorld(RigidBodyTree* model, XMLElement* node,
                 const PackageMap& package_map, const string& root_dir,
                 const DrakeJoint::FloatingBaseType floating_base_type) {
   for (XMLElement* model_node = node->FirstChildElement("model"); model_node;
        model_node = model_node->NextSiblingElement("model")) {
-    parseModel(model, model_node, package_map, root_dir, floating_base_type);
+    ParseModel(model, model_node, package_map, root_dir, floating_base_type,
+      Isometry3d::Identity());
   }
 }
 
-void parseSDF(RigidBodyTree* model, XMLDocument* xml_doc,
+int ParseSDF(RigidBodyTree* model, XMLDocument* xml_doc,
               PackageMap& package_map, const string& root_dir,
-              const DrakeJoint::FloatingBaseType floating_base_type) {
+              const DrakeJoint::FloatingBaseType floating_base_type,
+              const Eigen::Isometry3d pose_of_model_in_world) {
   populatePackageMap(package_map);
 
   XMLElement* node = xml_doc->FirstChildElement("sdf");
@@ -625,34 +635,50 @@ void parseSDF(RigidBodyTree* model, XMLDocument* xml_doc,
     if (world_node->NextSiblingElement("world")) {
       throw runtime_error("ERROR: Multiple worlds in file, ambiguous.");
     }
-    parseWorld(model, world_node, package_map, root_dir, floating_base_type);
+    ParseWorld(model, world_node, package_map, root_dir, floating_base_type);
   }
 
   // Load all models not in a world.
+  int num_models_loaded = 0;
+
   for (XMLElement* model_node = node->FirstChildElement("model"); model_node;
-       model_node = model_node->NextSiblingElement("model"))
-    parseModel(model, model_node, package_map, root_dir, floating_base_type);
+       model_node = model_node->NextSiblingElement("model")) {
+
+    ParseModel(model, model_node, package_map, root_dir, floating_base_type,
+      pose_of_model_in_world);
+
+    num_models_loaded++;
+  }
 
   model->compile();
+
+  return num_models_loaded;
 }
 
-void RigidBodyTree::addRobotFromSDF(
-    const string& urdf_filename,
-    const DrakeJoint::FloatingBaseType floating_base_type) {
+int RigidBodyTree::AddRobotsFromSDF(
+    const string& file_name,
+    const DrakeJoint::FloatingBaseType floating_base_type,
+    const Eigen::Isometry3d pose_of_model_in_world) {
+
+  // Instantiates a temporary PackageMap object.
   PackageMap package_map;
 
+  // Loads the SDF file.
   XMLDocument xml_doc;
-  xml_doc.LoadFile(urdf_filename.data());
+  xml_doc.LoadFile(file_name.data());
   if (xml_doc.ErrorID()) {
-    throw std::runtime_error("failed to parse xml in file " + urdf_filename +
+    throw std::runtime_error("Failed to parse XML in file " + file_name +
                              "\n" + xml_doc.ErrorName());
   }
 
+  // Computes the root directory
   string root_dir = ".";
-  size_t found = urdf_filename.find_last_of("/\\");
+  size_t found = file_name.find_last_of("/\\");
   if (found != string::npos) {
-    root_dir = urdf_filename.substr(0, found);
+    root_dir = file_name.substr(0, found);
   }
 
-  parseSDF(this, &xml_doc, package_map, root_dir, floating_base_type);
+  // Parses the SDF file and adds the robot to the rigid body tree.
+  return ParseSDF(this, &xml_doc, package_map, root_dir, floating_base_type,
+    pose_of_model_in_world);
 }

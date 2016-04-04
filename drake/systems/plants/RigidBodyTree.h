@@ -70,33 +70,169 @@ class DRAKERBM_EXPORT RigidBodyTree {
   RigidBodyTree(void);
   virtual ~RigidBodyTree(void);
 
-  void addRobotFromURDFString(
-      const std::string& xml_string, const std::string& root_dir = ".",
+  /**
+   * Adds a robot defined in a URDF string to this rigid body tree.
+   *
+   * @param urdf_string The string containing the URDF model.
+   * @param root_dir The root directory from which to search for meshes.
+   * @param floating_base_type The type of joint to use for the floating base.
+   * @param weld_to_frame The frame to which to weld the robot.
+   * This can be nullpointer, in which case the robot is welded to
+   * the world with zero offset.
+   * @return the number of robots added to the rigid body tree.
+   */
+  int AddRobotFromURDFString(
+      const std::string& urdf_string,
+      const std::string& root_dir = ".",
       const DrakeJoint::FloatingBaseType floating_base_type =
           DrakeJoint::ROLLPITCHYAW,
       std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
-  void addRobotFromURDFString(
-      const std::string& xml_string,
+
+  /**
+   * Adds a robot defined in a URDF string to this rigid body tree.
+   * This method also searches the ROS package path for meshes.
+   *
+   * @param urdf_string The string containing the URDF model.
+   * @param package_map The ROS packages in which to search for mesh files.
+   * @param root_dir The root directory from which to search for meshes.
+   * @param floating_base_type The type of joint to use for the floating base.
+   * @param weld_to_frame The frame to which to weld the robot.
+   * This can be nullpointer, in which case the robot is welded to
+   * the world with zero offset.
+   * @return the number of robots added to the rigid body tree.
+   */
+  int AddRobotFromURDFString(
+      const std::string& urdf_string,
       std::map<std::string, std::string>& package_map,
       const std::string& root_dir = ".",
       const DrakeJoint::FloatingBaseType floating_base_type =
           DrakeJoint::ROLLPITCHYAW,
       std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
-  void addRobotFromURDF(
-      const std::string& urdf_filename,
+
+  /**
+   * Adds a robot defined in a URDF file to this rigid body tree.
+   *
+   * @param urdf_file_name The name of the file containing the URDF model.
+   * @param floating_base_type The type of joint to use for the floating base.
+   * @param weld_to_frame The frame to which to weld the robot.
+   * This can be nullpointer, in which case the robot is welded to
+   * the world with zero offset.
+   * @return the number of robots added to the rigid body tree.
+   */
+  int AddRobotFromURDF(
+      const std::string& urdf_file_name,
       const DrakeJoint::FloatingBaseType floating_base_type =
           DrakeJoint::ROLLPITCHYAW,
       std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
-  void addRobotFromURDF(
+
+  /**
+   * Adds a robot defined in a URDF file to this rigid body tree.
+   * This method also searches the ROS package path for meshes.
+   *
+   * @param urdf_file_name The name of the file containing the URDF model.
+   * @param package_map The ROS packages in which to search for mesh files.
+   * @param floating_base_type The type of joint to use for the floating base.
+   * @param weld_to_frame The frame to which to weld the robot.
+   * This can be nullpointer, in which case the robot is welded to
+   * the world with zero offset.
+   * @return the number of robots added to the rigid body tree.
+   */
+  int AddRobotFromURDF(
       const std::string& urdf_filename,
       std::map<std::string, std::string>& package_map,
       const DrakeJoint::FloatingBaseType floating_base_type =
           DrakeJoint::ROLLPITCHYAW,
       std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
 
-  void addRobotFromSDF(const std::string& sdf_filename,
-                       const DrakeJoint::FloatingBaseType floating_base_type =
-                           DrakeJoint::QUATERNION);
+  /**
+   * Adds a robot defined in a URDF string to this rigid body tree.
+   *
+   * @param urdf_string The string containing the URDF model.
+   * @param root_dir The root directory from which to search for meshes.
+   * @param floating_base_type The type of joint to use for the floating base.
+   * @param pose_of_model_in_world Transform giving the pose of the URDF's
+   * model frame expressed in the world frame. By default this is identity.
+   * @return the number of robots added to the rigid body tree.
+   */
+  int AddRobotFromURDFStringIsometry3dPose(
+      const std::string& urdf_string,
+      const std::string& root_dir = ".",
+      const DrakeJoint::FloatingBaseType floating_base_type =
+          DrakeJoint::ROLLPITCHYAW,
+      const Eigen::Isometry3d pose_of_model_in_world =
+          Eigen::Isometry3d::Identity());
+
+  /**
+   * Adds a robot defined in a URDF string to this rigid body tree.
+   * This method also searches the ROS package path for meshes.
+   *
+   * @param urdf_string The string containing the URDF model.
+   * @param package_map The ROS packages in which to search for mesh files.
+   * @param root_dir The root directory from which to search for meshes.
+   * @param floating_base_type The type of joint to use for the floating base.
+   * @param pose_of_model_in_world Transform giving the pose of the URDF's
+   * model frame expressed in the world frame. By default this is identity.
+   * @return the number of robots added to the rigid body tree.
+   */
+  int AddRobotFromURDFStringIsometry3dPose(
+      const std::string& urdf_string,
+      std::map<std::string, std::string>& package_map,
+      const std::string& root_dir = ".",
+      const DrakeJoint::FloatingBaseType floating_base_type =
+          DrakeJoint::ROLLPITCHYAW,
+      const Eigen::Isometry3d pose_of_model_in_world =
+          Eigen::Isometry3d::Identity());
+
+  /**
+   * Adds a robot defined in a URDF file to this rigid body tree.
+   *
+   * @param urdf_file_name The name of the file containing the URDF model.
+   * @param floating_base_type The type of joint to use for the floating base.
+   * @param pose_of_model_in_world Transform giving the pose of the URDF's
+   * model frame expressed in the world frame. By default this is identity.
+   * @return the number of robots added to the rigid body tree.
+   */
+  int AddRobotFromURDFIsometry3dPose(
+      const std::string& file_name,
+      const DrakeJoint::FloatingBaseType floating_base_type =
+          DrakeJoint::ROLLPITCHYAW,
+      const Eigen::Isometry3d pose_of_model_in_world =
+          Eigen::Isometry3d::Identity());
+
+  /**
+   * Adds a robot defined in a URDF file to this rigid body tree.
+   * This method also searches the ROS package path for meshes.
+   *
+   * @param urdf_file_name The name of the file containing the URDF model.
+   * @param package_map The ROS packages in which to search for mesh files.
+   * @param floating_base_type The type of joint to use for the floating base.
+   * @param pose_of_model_in_world Transform giving the pose of the URDF's
+   * model frame expressed in the world frame. By default this is identity.
+   * @return the number of robots added to the rigid body tree.
+   */
+  int AddRobotFromURDFIsometry3dPose(
+      const std::string& file_name,
+      std::map<std::string, std::string>& package_map,
+      const DrakeJoint::FloatingBaseType floating_base_type =
+          DrakeJoint::ROLLPITCHYAW,
+      const Eigen::Isometry3d pose_of_model_in_world =
+          Eigen::Isometry3d::Identity());
+
+  /**
+   * Adds a robot defined in a SDF file to this rigid body tree.
+   *
+   * @param file_name The name of the file containing the SDF model.
+   * @param floating_base_type The type of joint to use for the floating base.
+   * @param pose_of_model_in_world Transform giving the pose of the URDF's
+   * model frame expressed in the world frame. By default this is identity.
+   * @return the number of robots added to the rigid body tree.
+   */
+  int AddRobotsFromSDF(
+      const std::string& file_name,
+      const DrakeJoint::FloatingBaseType floating_base_type =
+          DrakeJoint::QUATERNION,
+      const Eigen::Isometry3d pose_of_model_in_world =
+          Eigen::Isometry3d::Identity());
 
   void addFrame(std::shared_ptr<RigidBodyFrame> frame);
 
