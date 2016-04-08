@@ -102,12 +102,46 @@ classdef Constraint
       sizecheck(name,[obj.num_cnstr,1]);
       obj.name = name;
     end
-    
+
     function disp(obj)
       fprintf('%d constraints on %d variables:\n',obj.num_cnstr,obj.xdim);
       for j=1:obj.num_cnstr
         fprintf('  %f <= %s <= %f\n',obj.lb(j),obj.name{j},obj.ub(j));
       end
+      fprintf('value lb:')
+      obj.lb      % The lower bound of the constraint
+      fprintf('value ub:')
+      obj.ub      % The upper bound of the constraint
+      fprintf('value xdim:')
+      obj.xdim    % The size of the input to the constraint
+      fprintf('value num_cnstr:')
+      obj.num_cnstr % An int scalar. The number of constraints
+      fprintf('value name:')
+      obj.name    % cell array of constraint names
+      fprintf('value ceq_idx:')
+      obj.ceq_idx   % The row index of the equality constraint
+      fprintf('value cin_idx:')
+      obj.cin_idx   % The row index of the inequality constraint
+
+      % gradient sparsity information
+      fprintf('value iCfun:')
+      obj.iCfun   % An int vector. The row index of non-zero entries of the gradient matrix
+      fprintf('value jCvar:')
+      obj.jCvar   % An int vector. The column index of the non-zero entries of the gradient matrix
+      fprintf('value nnz:')
+      obj.nnz     % An int scalar. The maximal number of non-zero entries in the gradient matrix
+      fprintf('grad_level')
+      obj.grad_level        % derivative level of user gradients provided
+      fprintf('grad_method')
+      obj.grad_method   % A string indicating the method to compute gradient. If empty,
+                      % then it calls geval only if the grad_level is insufficient
+                      % to supply all of the requested arguments.  Refer to
+                      % the 'geval' documentation for additional supported values. @default ''
+      fprintf('eval_handle:')
+      obj.eval_handle
+
+
+
     end
 
     function varargout = eval(obj,varargin)

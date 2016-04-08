@@ -35,9 +35,11 @@ function testGeneratedManipulators(urdf_filename)
       continue
     end
     if ~(isequal(val, r_file_struct.(field)))
+      fprintf('URDF file name: %s\n', urdf_filename)
       fprintf('Field: %s\n',field);
       val
       r_file_struct.(field)
+      val{1,1}.whatIsDifferent(r_file_struct.(field){1,1})
       fprintf('value in r_string_struct:')
       val{1,1}
       fprintf('value in r_file_struct:')
