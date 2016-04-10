@@ -79,46 +79,48 @@ bool decode(const drake::lcmt_driving_control_cmd_t& msg, double& t,
  */
 
 int main(int argc, char* argv[]) {
-  if (argc < 2) {
-    std::cerr << "Usage: " << argv[0] << " vehicle_urdf [world sdf files ...]"
+  if (argc < 7) {
+    std::cerr << "Usage: " << argv[0]
+              << " vehicle_model_file x y z r p y [world sdf files ...]"
               << std::endl;
     return 1;
   }
 
-  // todo: consider moving this logic into the RigidBodySystem class so it can
-  // be reused
-  DrakeJoint::FloatingBaseType floating_base_type = DrakeJoint::QUATERNION;
-
   auto rigid_body_sys = make_shared<RigidBodySystem>();
 
-  // The following variable, weld_to_frame, is only needed if the model is a
-  // URDF file. It is needed since URDF does not specify the location and
-  // orientation of the car's root node in the world. If the model is an SDF,
-  // weld_to_frame is ignored by the parser.
+  // Defines the position and orientation of the vehicle model in the world
+  // coordinate frame. Note that if the model is an SDF, the transform specified
+  // here is in addition to any model <pose> specfied within the SDF.
   auto weld_to_frame = allocate_shared<RigidBodyFrame>(
       aligned_allocator<RigidBodyFrame>(),
-      // Weld the model to the world link.
+
+      // Welds the vehicle model to the rigid body tree's world link.
       "world",
 
-      // A pointer to a rigid body to which to weld the model is not needed
-      // since the model will be welded to the world, which can by automatically
-      // found within the rigid body tree.
+      // This is a pointer to the rigid body to which to weld the vehicle model.
+      // Since we are welding the vehicle to the world, we pass in nullptr.
+      // The rigid body tree can automatically obtain the world link based on
+      // its name.
       nullptr,
 
-      // The following parameter specifies the X,Y,Z position of the car's root
-      // link in the world's frame. The kinematics of the car model requires
-      // that its root link be elevated along the Z-axis by 0.378326m.
-      Eigen::Vector3d(0, 0, 0.378326),
+      // Specifies the X,Y,Z position of the car model's world frame in the
+      // rigid body tree's world frame.
+      Eigen::Vector3d(std::stod(argv[2]), std::stod(argv[3]),
+        std::stod(argv[4])),
 
-      // The following parameter specifies the roll, pitch, and yaw of the car's
-      // root link in the world's frame.
-      Eigen::Vector3d(0, 0, 0));
+      // Specifies the roll, pitch, and yaw of the car model's world frame in
+      // the rigid body tree's world frame.
+      Eigen::Vector3d(std::stod(argv[5]), std::stod(argv[6]),
+        std::stod(argv[7])));
 
-  rigid_body_sys->addRobotFromFile(argv[1], floating_base_type, weld_to_frame);
+  // Adds the vehicle to the simulation.
+  rigid_body_sys->addRobotFromFile(argv[1], DrakeJoint::QUATERNION,
+    weld_to_frame);
 
+  // Adds the environment to the simulation.
   auto const& tree = rigid_body_sys->getRigidBodyTree();
-  for (int i = 2; i < argc; i++)
-    tree->addRobotFromSDF(argv[i], DrakeJoint::FIXED);  // add environment
+  for (int i = 8; i < argc; i++)
+    tree->addRobotFromSDF(argv[i], DrakeJoint::FIXED);
 
   if (argc < 3) {  // add flat terrain
     double box_width = 1000;
@@ -141,11 +143,12 @@ int main(int argc, char* argv[]) {
 
   shared_ptr<lcm::LCM> lcm = make_shared<lcm::LCM>();
 
+  // Configures PD controllers for the car's steering angle and throttle.
   MatrixXd Kp(getNumInputs(*rigid_body_sys), tree->num_positions),
       Kd(getNumInputs(*rigid_body_sys), tree->num_velocities);
   Matrix<double, Eigen::Dynamic, 3> map_driving_cmd_to_x_d(
       tree->num_positions + tree->num_velocities, 3);
-  {  // setup PD controller for throttle and steering
+  {
     double kpSteering = 400, kdSteering = 80, kThrottle = 100;
     Kp.setZero();
     Kd.setZero();
@@ -173,17 +176,25 @@ int main(int argc, char* argv[]) {
       }
     }
   }
+
+  // Wraps a PD control system around the rigid body system.
   auto vehicle_with_pd =
       make_shared<PDControlSystem<RigidBodySystem>>(rigid_body_sys, Kp, Kd);
+
+  // Cascades the driving command receiver with the vehicle + PD controllers.
   auto vehicle_sys = cascade(
       make_shared<
           Gain<DrivingCommand, PDControlSystem<RigidBodySystem>::InputVector>>(
           map_driving_cmd_to_x_d),
       vehicle_with_pd);
+
+  // Cascades the vehicle + PD controllers with the component that communicates
+  // with the visualizer.
   auto visualizer =
       make_shared<BotVisualizer<RigidBodySystem::StateVector>>(lcm, tree);
   auto sys = cascade(vehicle_sys, visualizer);
 
+  // Defines the simulation options.
   SimulationOptions options = default_simulation_options;
   rigid_body_sys->penetration_stiffness = 5000.0;
   rigid_body_sys->penetration_damping =
@@ -192,6 +203,7 @@ int main(int argc, char* argv[]) {
   options.initial_step_size = 5e-3;
   options.timeout_seconds = numeric_limits<double>::infinity();
 
+  // Initializes the initial state of the system.
   VectorXd x0 = VectorXd::Zero(rigid_body_sys->getNumStates());
   x0.head(tree->num_positions) = tree->getZeroConfiguration();
   // todo:  call getInitialState instead?  (but currently, that would require
@@ -200,8 +212,7 @@ int main(int argc, char* argv[]) {
   // initially as the ackerman constraint (hopefully) gets enforced by the
   // stabilization terms.
 
+  // Runs the simulation.
   runLCM(sys, lcm, 0, std::numeric_limits<double>::infinity(), x0, options);
-  //  simulate(*sys, 0, std::numeric_limits<double>::infinity(), x0, options);
-
   return 0;
 }
