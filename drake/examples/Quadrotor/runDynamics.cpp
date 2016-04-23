@@ -43,11 +43,13 @@ int main(int argc, char* argv[]) {
                                             : "throw exception")
        << " if real-time max-delay is violated." << endl;
 
-  shared_ptr<lcm::LCM> lcm = make_shared<lcm::LCM>();
+  shared_ptr<lcm::LCM> lcm = allocate_shared<lcm::LCM>(
+    Eigen::aligned_allocator<lcm::LCM>());
   if (!lcm->good()) return 1;
 
   DrakeJoint::FloatingBaseType floating_base_type = DrakeJoint::QUATERNION;
-  auto rigid_body_sys = make_shared<RigidBodySystem>();
+  auto rigid_body_sys = allocate_shared<RigidBodySystem>(
+    Eigen::aligned_allocator<RigidBodySystem>());
   rigid_body_sys->addRobotFromFile(
       getDrakePath() + "/examples/Quadrotor/warehouse.sdf", floating_base_type);
 
@@ -61,23 +63,31 @@ int main(int argc, char* argv[]) {
 
   auto sensor_frame = tree->findFrame("body");
 
-  auto accelerometer = make_shared<RigidBodyAccelerometer>(
+  auto accelerometer = allocate_shared<RigidBodyAccelerometer>(
+      Eigen::aligned_allocator<RigidBodyAccelerometer>(),
       *rigid_body_sys, "accelerometer", sensor_frame);
 
-  auto lidar2D = make_shared<RigidBodyDepthSensor>(
+  auto lidar2D = allocate_shared<RigidBodyDepthSensor>(
+      Eigen::aligned_allocator<RigidBodyDepthSensor>(),
       *rigid_body_sys, "lidar2D", tree->findFrame("laser"), num_lidar_points,
       -3 * M_PI / 4, 3 * M_PI / 4, 30.0);
-  auto gyroscope = make_shared<RigidBodyGyroscope>(*rigid_body_sys, "gyroscope",
+  auto gyroscope = allocate_shared<RigidBodyGyroscope>(
+    Eigen::aligned_allocator<RigidBodyGyroscope>(),
+    *rigid_body_sys, "gyroscope",
                                                    sensor_frame);
-  auto magnetometer = make_shared<RigidBodyMagnetometer>(
+  auto magnetometer = allocate_shared<RigidBodyMagnetometer>(
+      Eigen::aligned_allocator<RigidBodyMagnetometer>(),
       *rigid_body_sys, "magnetometer", sensor_frame, 0.0);
 
-  auto rangefinder = make_shared<RigidBodyDepthSensor>(
+  auto rangefinder = allocate_shared<RigidBodyDepthSensor>(
+      Eigen::aligned_allocator<RigidBodyDepthSensor>(),
       *rigid_body_sys, "rangefinder", tree->findFrame("rangefinder"), 1, 0, 0,
       40.0);
 
   auto noise_model =
-      make_shared<AdditiveGaussianNoiseModel<double, 3, Vector3d>>(0, 0.01);
+      allocate_shared<AdditiveGaussianNoiseModel<double, 3, Vector3d>>(
+        Eigen::aligned_allocator<AdditiveGaussianNoiseModel<double, 3, Vector3d>>(),
+        0, 0.01);
   accelerometer->setNoiseModel(noise_model);
   accelerometer->setGravityCompensation(true);
   gyroscope->setNoiseModel(noise_model);
@@ -107,13 +117,17 @@ int main(int argc, char* argv[]) {
   tree->updateStaticCollisionElements();
 
   auto visualizer =
-      make_shared<BotVisualizer<RigidBodySystem::StateVector>>(lcm, tree);
+      allocate_shared<BotVisualizer<RigidBodySystem::StateVector>>(
+        Eigen::aligned_allocator<BotVisualizer<RigidBodySystem::StateVector>>(),
+        lcm, tree);
 
   auto quad_control_to_rbsys_input =
-      make_shared<Gain<QuadrotorInput, RigidBodySystem::InputVector>>(
+      allocate_shared<Gain<QuadrotorInput, RigidBodySystem::InputVector>>(
+          Eigen::aligned_allocator<Gain<QuadrotorInput, RigidBodySystem::InputVector>>(),
           Eigen::Matrix4d::Identity());
   auto rbsys_output_to_quad_state =
-      make_shared<Gain<RigidBodySystem::StateVector, QuadrotorOutput>>(
+      allocate_shared<Gain<RigidBodySystem::StateVector, QuadrotorOutput>>(
+          Eigen::aligned_allocator<Gain<RigidBodySystem::StateVector, QuadrotorOutput>>(),
           Eigen::Matrix<double, 22 + num_lidar_points + 1,
                         22 + num_lidar_points + 1>::Identity());
 
