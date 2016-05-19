@@ -2,10 +2,16 @@ add_subdirectory(test)
 if (LCM_FOUND)
   include_directories(${PROJECT_SOURCE_DIR}/pod-build/lcmgen)
 
-  add_library_with_exports(LIB_NAME drakeCars SOURCE_FILES simple_car.cc)
+  add_library_with_exports(LIB_NAME drakeCars SOURCE_FILES 
+    curve2.cc 
+    simple_car.cc 
+    trajectory_car.cc)
   pods_install_libraries(drakeCars)
   drake_install_headers(
+    curve2.h
     simple_car.h
+    trajectory_car.h
+    trivial_car.h
     gen/driving_command.h
     gen/euler_floating_joint_state.h
     gen/simple_car_state.h
@@ -38,5 +44,8 @@ if (LCM_FOUND)
     add_executable(car_sim_lcm_and_ros car_sim_lcm_and_ros.cpp)
     target_link_libraries(car_sim_lcm_and_ros drakeCarSimLib drakeRBSystem drakeLCMSystem ${roscpp_LIBRARIES} ${tf_LIBRARIES})
   endif()
+
+  add_executable(demo_multi_car demo_multi_car.cc)
+  target_link_libraries(demo_multi_car drakeRBSystem drakeLCMSystem)
 
 endif (LCM_FOUND)
