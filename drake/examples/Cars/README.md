@@ -140,6 +140,25 @@ If you're running the Steering Command Driver, ensure that the (very small)
 a joystick / steering wheel.. you can use that, too (see
 `SteeringCommandDriver.py` for details).
 
+
+Additional Simulation Notes
+---------------------------
+
+### Enable Chase Cam Mode in the Drake Visualizer
+
+To avoid the car moving out of view within the Drake Visualizer, we recommend
+setting Drake Visualizer to chase cam mode.  To do this, select Menu, 'View`,
+and 'Camera Control Panel'. Within this control panel, click on 'Select Target',
+and then click on the Toyota Prius.  In the control panel, change 'Track Mode'
+to be 'Smooth Follow' and increase the elevation to 30 degrees.
+
+### Driving the Prius Around in the Simulation
+
+If you're running the Steering Command Driver, ensure that the (very small)
+`pygame` window has focus, then use your arrow keys to drive around. If you have
+a joystick / steering wheel.. you can use that, too (see
+`SteeringCommandDriver.py` for details).
+
 If you are unable to run the Steering Command Driver, you can generate simple
 throttle and steering commands using the command line:
 

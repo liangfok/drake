@@ -15,18 +15,25 @@ using Drake::SimulationOptions;
 using Eigen::VectorXd;
 
 namespace drake {
+namespace examples {
+namespace cars {
 namespace {
 
 int do_main(int argc, const char* argv[]) {
-  // Initializes communication layer(s).
+  // Initializes the communication layer.
   std::shared_ptr<lcm::LCM> lcm = std::make_shared<lcm::LCM>();
 
+  // Instantiates a duration variable that will be set by the call to
+  // CreateRigidBodySystem() below.
+  double duration = std::numeric_limits<double>::infinity();
+
   // Initializes the rigid body system.
-  auto rigid_body_sys = drake::CreateRigidBodySystem(argc, argv);
+  auto rigid_body_sys =
+      CreateRigidBodySystem(argc, argv, &duration);
   auto const& tree = rigid_body_sys->getRigidBodyTree();
 
   // Initializes and cascades all of the other systems.
-  auto vehicle_sys = drake::CreateVehicleSystem(rigid_body_sys);
+  auto vehicle_sys = CreateVehicleSystem(rigid_body_sys);
 
   auto visualizer =
       std::make_shared<BotVisualizer<RigidBodySystem::StateVector>>(lcm, tree);
@@ -34,23 +41,22 @@ int do_main(int argc, const char* argv[]) {
   auto sys = cascade(vehicle_sys, visualizer);
 
   // Initializes the simulation options.
-  SimulationOptions options;
-  try {
-    drake::SetSimulationOptions(&options);
-  } catch(std::runtime_error error) {
-    std::cerr << "ERROR: Simulation options is a nullptr!" << std::endl;
-    return EXIT_FAILURE;
-  }
+  SimulationOptions options =
+      GetCarSimulationDefaultOptions();
 
   // Starts the simulation.
-  Drake::runLCM(sys, lcm, 0, std::numeric_limits<double>::infinity(),
-                drake::GetInitialState(rigid_body_sys), options);
+  Drake::runLCM(sys, lcm, 0, duration,
+                GetInitialState(*(rigid_body_sys.get())),
+                options);
+
   return 0;
 }
 
 }  // namespace
+}  // namespace cars
+}  // namespace examples
 }  // namespace drake
 
 int main(int argc, const char* argv[]) {
-  return drake::do_main(argc, argv);
+  return drake::examples::cars::do_main(argc, argv);
 }

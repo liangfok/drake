@@ -5,7 +5,7 @@
 
 #include <Eigen/Geometry>
 
-#include "drake/drakeCarSimLib_export.h"
+#include "drake/drakeCars_export.h"
 #include "drake/examples/Cars/gen/driving_command.h"
 #include "drake/systems/LinearSystem.h"
 #include "drake/systems/Simulation.h"
@@ -20,6 +20,8 @@ using Drake::Gain;
 using Drake::SimulationOptions;
 
 namespace drake {
+namespace examples {
+namespace cars {
 
 /**
  * Parses the command line arguments and creates the rigid body system to be
@@ -27,13 +29,25 @@ namespace drake {
  * model file followed by an arbitrary number of model files representing things
  * the vehicle's environment.
  *
+ * Note: This method will call `::exit(EXIT_FAILURE)` if it encounters a problem
+ * parsing the input parameters.
+ *
+ * Note: If no flat terrain is specified by the input parameters, a flat
+ * terrain is added automatically.
+ *
  * @param[in] argc The number of command line arguments.
  * @param[in] argv An array of command line arguments.
+ * @param[out] duration The duration over which the simulation should run. The
+ * simulation runs from time zero seconds to time \p duration seconds. If no
+ * duration is specified in \p argv, this \p duration is set to be infinity.
+ * A duration is specified in \p argv by the string "--duration" followed by a
+ * floating point value.
  * @return A shared pointer to a rigid body system.
  */
-DRAKECARSIMLIB_EXPORT
+DRAKECARS_EXPORT
 std::shared_ptr<RigidBodySystem> CreateRigidBodySystem(int argc,
-                                                       const char* argv[]);
+                                                       const char* argv[],
+                                                       double* duration);
 
 /**
  * Creates a vehicle system by instantiating PD controllers for the actuators
@@ -43,26 +57,20 @@ std::shared_ptr<RigidBodySystem> CreateRigidBodySystem(int argc,
  * @param[in] rigid_body_sys The rigid body system.
  * @return The resulting vehicle system.
  */
-DRAKECARSIMLIB_EXPORT
+DRAKECARS_EXPORT
 std::shared_ptr<CascadeSystem<
     Gain<DrivingCommand, PDControlSystem<RigidBodySystem>::InputVector>,
     PDControlSystem<RigidBodySystem>>>
 CreateVehicleSystem(std::shared_ptr<RigidBodySystem> rigid_body_sys);
 
 /**
- * Sets the simulation options. It uses the default simulation options modulo
- * the input parameters.
+ * Returns the default simulation options for car simulations. The default
+ * options include an initial step size of 5e-3 and a timeout of infinity.
  *
- * @param[out] sim_options A pointer to where the simulation options should
- * be saved.
- * @param[in] initial step size The initial simulation step size in seconds.
- * @param[in] timeout_seconds The final time of the simulation in seconds.
- * @throws A std::runtime_error if parameter \p sim_options is a nullptr.
+ * @return The default car simulation options.
  */
-DRAKECARSIMLIB_EXPORT
-void SetSimulationOptions(SimulationOptions* sim_options,
-  double initial_step_size = 5e-3,
-  double timeout_seconds = std::numeric_limits<double>::infinity());
+DRAKECARS_EXPORT
+SimulationOptions GetCarSimulationDefaultOptions();
 
 /**
  * Obtains a valid initial state of the system being simulated.
@@ -70,8 +78,9 @@ void SetSimulationOptions(SimulationOptions* sim_options,
  * @param[in] rigid_body_sys The rigid body system being simulated.
  * @return The initial state of the system.
  */
-DRAKECARSIMLIB_EXPORT
-Eigen::VectorXd GetInitialState(
-    std::shared_ptr<RigidBodySystem> rigid_body_sys);
+DRAKECARS_EXPORT
+Eigen::VectorXd GetInitialState(const RigidBodySystem& rigid_body_sys);
 
+}  // namespace cars
+}  // namespace examples
 }  // namespace drake
