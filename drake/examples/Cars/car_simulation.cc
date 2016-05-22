@@ -177,7 +177,6 @@ CreateVehicleSystem(std::shared_ptr<RigidBodySystem> rigid_body_sys) {
   return vehicle_sys;
 }
 
-
 SimulationOptions GetCarSimulationDefaultOptions() {
   SimulationOptions result = Drake::default_simulation_options;
   result.initial_step_size = 5e-3;
