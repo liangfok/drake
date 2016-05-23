@@ -12,6 +12,7 @@
 #include "drake/systems/plants/BotVisualizer.h"
 #include "drake/systems/plants/RigidBodyTree.h"
 
+#include "drake/examples/Cars/car_simulation.h"
 #include "drake/examples/Cars/curve2.h"
 #include "drake/examples/Cars/gen/euler_floating_joint_state.h"
 #include "drake/examples/Cars/trajectory_car.h"
@@ -101,11 +102,6 @@ int do_main(int argc, const char* argv[]) {
             Eigen::MatrixXd::Zero(outsize, 0), D,
             toEigen(y0));
 
-  const std::string kSedanUrdf = Drake::getDrakePath() +
-      "/examples/Cars/models/sedan.urdf";
-  const std::string kBreadtruckUrdf = Drake::getDrakePath() +
-      "/examples/Cars/models/breadtruck.urdf";
-
   // RigidBodyTree for visualization.
   auto world_tree = std::make_shared<RigidBodyTree>();
 
@@ -134,24 +130,42 @@ int do_main(int argc, const char* argv[]) {
 
   // Add all of the desired cars.
   for (int i = 0; i < num_cars; ++i) {
-    world_tree->addRobotFromURDF((i % 5) ? kSedanUrdf : kBreadtruckUrdf,
-                                 DrakeJoint::ROLLPITCHYAW,
-                                 nullptr /*weld_to_frame*/);
-    // TODO(maddog) Hmm... it appears that drake_visualizer wants unique names
-    //              on *links*, otherwise only one of the same-named links will
-    //              get updated joint parameters.
     std::ostringstream name;
     name << "car-" << i;
-    world_tree->bodies.back()->name_ = name.str();
+    std::string postfix = name.str();
+    if ((i % 5) != 0) {
+      const std::string kSedanUrdf =
+          Drake::getDrakePath() + "/examples/Cars/models/sedan.urdf";
+      world_tree->addRobotFromURDF(kSedanUrdf,
+                                   DrakeJoint::ROLLPITCHYAW,
+                                   nullptr /*weld_to_frame*/);
+      // TODO(maddog) Hmm... it appears that drake_visualizer wants unique names
+      //              on *links*, otherwise only one of the same-named links will
+      //              get updated joint parameters.
+      world_tree->bodies.back()->name_ = postfix;
+    } else {
+      const std::string kPriusSdf =
+          Drake::getDrakePath() + "/examples/Cars/models/prius/prius.sdf";
+      // TODO(maddog) Hmm... it appears that drake_visualizer wants unique names
+      //              on *links*, otherwise only one of the same-named links will
+      //              get updated joint parameters.
+      world_tree->addRobotFromSDF(kPriusSdf,
+                                  &postfix,
+                                  DrakeJoint::ROLLPITCHYAW,
+                                  nullptr /*weld_to_frame*/);
+      world_tree->bodies.back()->name_ = postfix;
+    }
 
     // Magic car placement to make a good visual demo.
     const auto& curve = curves[i % curves.size()];
     const double start_time = (i / curves.size()) * 0.8;
     const double kSpeed = 8.0;
-    auto system = std::make_shared<TrajectoryCar>(curve, kSpeed, start_time);
+    auto system = std::make_shared<TrajectoryCar>(curve, kSpeed, -start_time);
     cars_system->AddSystem(system);
     cars_vis_adapter->AddSystem(car_vis_adapter);
   }
+
+  examples::cars::AddFlatTerrain(world_tree);
 
   // Add LCM support, for visualization.
   std::shared_ptr<lcm::LCM> lcm = std::make_shared<lcm::LCM>();

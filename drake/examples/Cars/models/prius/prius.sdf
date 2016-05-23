@@ -150,17 +150,6 @@
           </box>
         </geometry>
       </visual>
-      <collision name='wheel'>
-        <laser_retro>0</laser_retro>
-        <max_contacts>10</max_contacts>
-        <pose>0 0 0 0 0 0</pose>
-        <geometry>
-          <cylinder>
-            <radius>0.323342</radius>
-            <length>0.215</length>
-          </cylinder>
-        </geometry>
-      </collision>
     </link>
 
     <link name='right_tie_rod_arm'>
@@ -252,17 +241,6 @@
           </box>
         </geometry>
       </visual>
-      <collision name='wheel'>
-        <laser_retro>0</laser_retro>
-        <max_contacts>10</max_contacts>
-        <pose>0 0 0 0 0 0</pose>
-        <geometry>
-          <cylinder>
-            <radius>0.323342</radius>
-            <length>0.215</length>
-          </cylinder>
-        </geometry>
-      </collision>
     </link>
 
     <link name='rear_axle'>
@@ -327,17 +305,6 @@
           <diffuse>0.2 0.2 0.2 1</diffuse>
         </material>
       </visual>
-      <collision name='wheel'>
-        <laser_retro>0</laser_retro>
-        <max_contacts>10</max_contacts>
-        <pose>0 0 0 0 0 0</pose>
-        <geometry>
-          <cylinder>
-            <radius>0.323342</radius>
-            <length>0.215</length>
-          </cylinder>
-        </geometry>
-      </collision>
     </link>
 
     <link name='right_wheel_rear'>
@@ -387,15 +354,6 @@
           </box>
         </geometry>
       </visual>
-      <collision name='wheel'>
-        <pose>0 0 0 0 0 0</pose>
-        <geometry>
-          <cylinder>
-            <radius>0.323342</radius>
-            <length>0.215</length>
-          </cylinder>
-        </geometry>
-      </collision>
     </link>
 
     <link name='body'>
