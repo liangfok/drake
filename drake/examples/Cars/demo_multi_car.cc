@@ -133,17 +133,17 @@ int do_main(int argc, const char* argv[]) {
     std::ostringstream name;
     name << "car-" << i;
     std::string postfix = name.str();
-    if ((i % 5) != 0) {
-      const std::string kSedanUrdf =
-          Drake::getDrakePath() + "/examples/Cars/models/sedan.urdf";
-      world_tree->addRobotFromURDF(kSedanUrdf,
-                                   DrakeJoint::ROLLPITCHYAW,
-                                   nullptr /*weld_to_frame*/);
-      // TODO(maddog) Hmm... it appears that drake_visualizer wants unique names
-      //              on *links*, otherwise only one of the same-named links will
-      //              get updated joint parameters.
-      world_tree->bodies.back()->name_ = postfix;
-    } else {
+    // if ((i % 5) != 0) {
+    //   const std::string kSedanUrdf =
+    //       Drake::getDrakePath() + "/examples/Cars/models/sedan.urdf";
+    //   world_tree->addRobotFromURDF(kSedanUrdf,
+    //                                DrakeJoint::ROLLPITCHYAW,
+    //                                nullptr weld_to_frame);
+    //   // TODO(maddog) Hmm... it appears that drake_visualizer wants unique names
+    //   //              on *links*, otherwise only one of the same-named links will
+    //   //              get updated joint parameters.
+    //   // world_tree->bodies.back()->name_ = postfix;
+    // } else {
       const std::string kPriusSdf =
           Drake::getDrakePath() + "/examples/Cars/models/prius/prius.sdf";
       // TODO(maddog) Hmm... it appears that drake_visualizer wants unique names
@@ -153,8 +153,8 @@ int do_main(int argc, const char* argv[]) {
                                   &postfix,
                                   DrakeJoint::ROLLPITCHYAW,
                                   nullptr /*weld_to_frame*/);
-      world_tree->bodies.back()->name_ = postfix;
-    }
+      // world_tree->bodies.back()->name_ = postfix;
+    // }
 
     // Magic car placement to make a good visual demo.
     const auto& curve = curves[i % curves.size()];
