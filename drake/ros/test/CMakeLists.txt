@@ -1,5 +1,7 @@
 if(GTEST_FOUND)
+  # catkin_add_executable(ros_test ros_test.cc)
+  # catkin_add_gtest_build_flags(ros_test)
   add_executable(ros_test ros_test.cc)
   target_link_libraries(ros_test ${GTEST_BOTH_LIBRARIES} ${roscpp_LIBRARIES})
-  add_test(NAME ros_test COMMAND ros_test)
+  # add_test(NAME ros_test COMMAND ros_test)
 endif()
