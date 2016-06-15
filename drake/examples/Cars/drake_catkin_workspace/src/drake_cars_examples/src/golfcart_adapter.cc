@@ -80,24 +80,28 @@ class PriusToGolfCartSensorConverter {
   void callback_front_laser(const sensor_msgs::LaserScanPtr& msg) {
     sensor_msgs::LaserScan message = *(msg.get());
     message.header.frame_id = "front_lidar";
+    message.header.stamp = ros::Time::now();
     pub_front_lidar.publish(message);
   }
 
   void callback_top_laser(const sensor_msgs::LaserScanPtr& msg) {
     sensor_msgs::LaserScan message = *(msg.get());
     message.header.frame_id = "front_top_lidar";
+    message.header.stamp = ros::Time::now();
     pub_front_top_lidar.publish(message);
   }
 
   void callback_rear_left_laser(const sensor_msgs::LaserScanPtr& msg) {
     sensor_msgs::LaserScan message = *(msg.get());
     message.header.frame_id = "rear_left_lidar";
+    message.header.stamp = ros::Time::now();
     pub_rear_left_lidar.publish(message);
   }
 
   void callback_rear_right_laser(const sensor_msgs::LaserScanPtr& msg) {
     sensor_msgs::LaserScan message = *(msg.get());
     message.header.frame_id = "rear_right_lidar";
+    message.header.stamp = ros::Time::now();
     pub_rear_right_lidar.publish(message);
   }
 
@@ -117,7 +121,7 @@ class PriusToGolfCartSensorConverter {
 
 int do_main(int argc, char* argv[]) {
   // Defines the frequency in Hz of publishing golfcart transforms.
-  const double kCycleFrequency = 10.0;
+  const double kCycleFrequency = 100.0;
 
   // Initializes ROS.
   ros::init(argc, argv, "golfcart_adapter");
