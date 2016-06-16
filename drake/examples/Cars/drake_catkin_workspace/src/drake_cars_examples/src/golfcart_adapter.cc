@@ -30,7 +30,7 @@ class PriusToGolfCartTFConverter {
       broadcaster_.sendTransform(transform);
     } catch (tf::TransformException ex) {
       if ((ros::Time::now() - start_time_).toSec() > kPublishErrorThreshold) {
-        ROS_ERROR("%s", ex.what());
+        ROS_WARN("Golfcart Adapter: %s. Is Drake running?", ex.what());
         ros::Duration(1.0).sleep();
       }
     }
@@ -125,6 +125,27 @@ int do_main(int argc, char* argv[]) {
 
   // Initializes ROS.
   ros::init(argc, argv, "golfcart_adapter");
+
+  // Queries the ROS parameter server for a boolean parameter in
+  // "/drake/enable_tf_publisher". This parameter is used to control whether
+  // this class translates /tf and sensor messages.
+  {
+    int num_get_attempts = 0;
+    bool continue_query = true;
+    bool enable_tf_publisher;
+    while (continue_query && !::ros::param::get("/drake/enable_tf_publisher",
+        enable_tf_publisher)) {
+      if (++num_get_attempts > 10) {
+        ROS_WARN("Failed to get parameter /drake/enable_tf_publisher. "
+                 "Assuming publisher is enabled.");
+        continue_query = false;
+      }
+    }
+
+    // Aborts this node if Drake's TF publisher is disabled.
+    if (!enable_tf_publisher)
+      return 0;
+  }
 
   // Sets the verbosity level to DEBUG.
   if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,

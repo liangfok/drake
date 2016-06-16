@@ -168,9 +168,6 @@ class SensorPublisherJointState {
         "parameter is nullptr!");
     }
 
-    std::cout << "InitJointStateMessage: Method called! robot_name = "
-              << robot_name << std::endl;
-
     // robot_struct->num_positions_ = 0;
     // robot_struct->num_velocities_ = 0;
 
