@@ -58,6 +58,20 @@ class DrakeRosTfPublisher {
   explicit DrakeRosTfPublisher(
       const std::shared_ptr<RigidBodyTree> rigid_body_tree)
       : rigid_body_tree_(rigid_body_tree) {
+
+    // Queries the ROS parameter server for a boolean parameter in
+    // "/drake/enable_tf_publisher". This parameter is used to control whether
+    // this class publishes /tf messages.
+    {
+      int num_get_attempts = 0;
+      while (!ros::param::get("/global_name", enable_tf_publisher_)) {
+        if (++num_get_attempts > 5) {
+          std::cerr << "ERROR: Failed to get parameter "
+            << "/drake/enable_tf_publisher. Assuming publisher is enabled.";
+          ros::Duration(1.0).sleep(); // Sleeps for a second.
+        }
+      }
+    }
     // Initializes the time stamp of the previous transmission to be zero.
     previous_send_time_.sec = 0;
     previous_send_time_.nsec = 0;
@@ -281,6 +295,9 @@ class DrakeRosTfPublisher {
 
   // The previous time the transform messages were sent.
   ::ros::Time previous_send_time_;
+
+  // Determines whether tf messages should be published.
+  bool enable_tf_publisher_;
 };
 
 }  // end namespace ros
