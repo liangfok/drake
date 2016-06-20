@@ -35,6 +35,8 @@ $ printf "\nexport PATH=\$HOME/tools/ninja:\$PATH" >> ~/.bashrc
 
 ## Check Tool Versions
 
+Before doing this, you may want to close and re-open your terminals to ensure the previous settings are applied.
+
 ```
 $ ninja --version
 1.7.1
@@ -98,6 +100,6 @@ $ roslaunch drake_cars_examples rviz_prius.launch
 $ cd ~/dev/drake-build/drake
 $ ./bin/car_sim_lcm_and_ros ../../drake-distro/drake/examples/Cars/models/prius/prius_with_lidar.sdf ../../drake-distro/drake/examples/Cars/models/stata_garage_p1.sdf
 
-# Starts the steering command driver
+# Starts the steering command driver, which provides GUI for issuing driving commands to the simulated vehicle.
 $ rosrun ackermann_drive_teleop ackermann_drive_keyop.py 1.0 0.7
 ```
