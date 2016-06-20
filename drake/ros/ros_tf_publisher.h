@@ -224,8 +224,8 @@ class DrakeRosTfPublisher {
       // Updates the transform only if the joint is not fixed.
       if (joint.getNumPositions() != 0 || joint.getNumVelocities() != 0) {
         auto transform = rigid_body_tree_->relativeTransform(
-            cache, rigid_body_tree_->findLinkId(rigid_body->parent->name()),
-            rigid_body_tree_->findLinkId(rigid_body->name()));
+            cache, rigid_body_tree_->FindBodyIndex(rigid_body->parent->name()),
+            rigid_body_tree_->FindBodyIndex(rigid_body->name()));
         auto translation = transform.translation();
         auto quat = rotmat2quat(transform.linear());
 

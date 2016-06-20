@@ -310,8 +310,8 @@ class SensorPublisherJointState {
       if (joint.getNumPositions() > 0) {
         if (joint.isFloating()) {
           auto transform = rigid_body_tree->relativeTransform(
-            cache, rigid_body_tree->findLinkId(rigid_body->parent->name()),
-            rigid_body_tree->findLinkId(rigid_body->name()));
+            cache, rigid_body_tree->FindBodyIndex(rigid_body->parent->name()),
+            rigid_body_tree->FindBodyIndex(rigid_body->name()));
           auto translation = transform.translation();
           auto rpy = rotmat2rpy(transform.linear());
 
