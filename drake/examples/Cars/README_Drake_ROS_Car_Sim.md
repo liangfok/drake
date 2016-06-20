@@ -1,6 +1,6 @@
 # Drake-ROS Car Simulation Setup Procedure
 
-*Note:* These instructions are working notes for running the Drake + ROS
+_Note:_ These instructions are working notes for running the Drake + ROS
 integration for simulating a vehicle. It should be considered "beta" and not a
 replacement for the [official Drake instructions](http://drake.mit.edu/installation.html).
 
@@ -69,7 +69,7 @@ $ printf "\nsource \$HOME/dev/drake-distro/drake/examples/Cars/drake_catkin_work
 $ cd ~/dev/drake-distro/drake/examples/Cars/drake_catkin_workspace/src
 
 $ git clone git@github.com:liangfok/ackermann-drive-teleop.git ackermann_drive_teleop
-or
+# or
 $ git clone https://github.com/liangfok/ackermann-drive-teleop.git ackermann_drive_teleop
 
 $ cd ackermann_drive_teleop
