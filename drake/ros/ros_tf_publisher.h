@@ -9,8 +9,10 @@
 
 #include "drake/core/Vector.h"
 #include "drake/systems/System.h"
+#include "drake/systems/plants/KinematicsCache.h"
 #include "drake/systems/plants/RigidBodyTree.h"
 #include "drake/systems/plants/RigidBodySystem.h"
+
 
 using Drake::NullVector;
 using Drake::RigidBodySensor;
