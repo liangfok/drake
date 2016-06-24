@@ -23,12 +23,6 @@ using Eigen::VectorXd;
 namespace drake {
 namespace ros {
 
-// Forward declaration.
-template DRAKERBM_EXPORT KinematicsCache<double> RigidBodyTree::doKinematics(
-    Eigen::MatrixBase<Eigen::Block<VectorXd, -1, 1, false>> const&,
-    Eigen::MatrixBase<Eigen::Block<VectorXd, -1, 1, false>> const&,
-    bool) const;
-
 // Holds the objects and data used to extract and publish joint state
 // information for a particular robot.
 struct RobotJointStateStruct {
