@@ -75,6 +75,9 @@ int do_main(int argc, const char* argv[]) {
 
   // Initializes the simulation options.
   SimulationOptions options = GetCarSimulationDefaultOptions();
+  options.should_stop = [](double sim_time) {
+    return !::ros::ok();
+  };
 
   // Obtains a valid zero configuration for the vehicle.
   VectorXd x0 = VectorXd::Zero(rigid_body_sys->getNumStates());
