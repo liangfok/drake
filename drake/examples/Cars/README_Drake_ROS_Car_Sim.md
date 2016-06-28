@@ -100,6 +100,6 @@ $ roslaunch drake_cars_examples rviz_prius.launch
 $ cd ~/dev/drake-build/drake
 $ ./bin/car_sim_lcm_and_ros ../../drake-distro/drake/examples/Cars/models/prius/prius_with_lidar.sdf ../../drake-distro/drake/examples/Cars/models/stata_garage_p1.sdf
 
-# Starts the steering command driver, which provides GUI for issuing driving commands to the simulated vehicle.
+# Starts the steering command driver, which provides a GUI for issuing driving commands to the simulated vehicle.
 $ rosrun ackermann_drive_teleop ackermann_drive_keyop.py 1.0 0.7
 ```
