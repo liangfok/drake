@@ -2,6 +2,11 @@
 # matlab has it's own boost libraries.  DO NOT let any mex file depend
 # on the system boost (directly nor indirectly), or you're asking for trouble.
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  # TODO(#2372) These are warnings that we can't handle yet.
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
+endif()
+
 add_library_with_exports(LIB_NAME drakeXMLUtil SOURCE_FILES xmlUtil.cpp)
 target_link_libraries(drakeXMLUtil drakeCommon tinyxml2 spruce)
 pods_install_libraries(drakeXMLUtil)
@@ -10,7 +15,13 @@ pods_install_pkg_config_file(drake-xml-util
   REQUIRES
   VERSION 0.0.1)
 
-add_library_with_exports(LIB_NAME drakeRBM SOURCE_FILES RigidBodyTree.cpp RigidBody.cpp RigidBodyTreeURDF.cpp RigidBodyTreeSDF.cpp RigidBodyTreeContact.cpp)
+add_library_with_exports(LIB_NAME drakeRBM SOURCE_FILES
+  RigidBodyTree.cpp
+  RigidBody.cpp
+  RigidBodyTreeURDF.cpp
+  RigidBodyTreeSDF.cpp
+  RigidBodyTreeContact.cpp
+  rigid_body_frame.cc)
 target_link_libraries(drakeRBM drakeCollision drakeJoints drakeUtil drakeXMLUtil)
 pods_install_libraries(drakeRBM)
 drake_install_headers(RigidBodyTree.h RigidBody.h RigidBodyFrame.h KinematicPath.h KinematicsCache.h ForceTorqueMeasurement.h)
