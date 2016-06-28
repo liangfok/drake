@@ -243,6 +243,7 @@ include(cmake/lcmtypes.cmake)
 # message generation. This prevent ROS from generating its own custom messages.
 find_package(roscpp QUIET)
 if(roscpp_FOUND)
+  set(ROS_FOUND ON)
   message(STATUS "Found roscpp installed at ${roscpp_DIR}, so building ROS-specific functionality.")
   include_directories(${roscpp_INCLUDE_DIRS})
 
@@ -261,9 +262,8 @@ if(roscpp_FOUND)
   find_package(tf REQUIRED)
   include_directories(${tf_INCLUDE_DIRS})
 else()
-  message(STATUS "Couldn't find roscpp so not building ROS-specific\
- functionality. If you want ROS support, be sure to source \
- the ROS setup.sh prior to building Drake.")
+  set(ROS_FOUND OFF)
+  message(STATUS "Couldn't find roscpp so not building ROS-specific functionality. If you want ROS support, be sure to source the ROS setup.sh prior to building Drake.")
 endif()
 
 if(LCM_FOUND)
@@ -323,6 +323,7 @@ include_directories(thirdParty/spruce/include)
 include_directories(thirdParty/cimg)
 
 add_subdirectory(common)
+add_subdirectory(math)
 add_subdirectory(core)
 add_subdirectory(util)
 add_subdirectory(solvers)
@@ -333,7 +334,7 @@ add_subdirectory(thirdParty/tinyxml2)
 add_subdirectory(examples)
 add_subdirectory(bindings)
 
-if(roscpp_FOUND AND catkin_FOUND AND genmsg_FOUND AND std_msgs_FOUND AND sensor_msgs_FOUND AND ackermann_msgs_FOUND AND tf_FOUND)
+if(ROS_FOUND)
   add_subdirectory(ros)
 endif()
 
@@ -384,9 +385,9 @@ if(MATLAB_FOUND)
     PROPERTIES TIMEOUT 300)
 endif()
 
-option(BUILD_DOCUMENTATION "Build Doxygen and Sphinx documentation." OFF)
+option(ENABLE_DOCUMENTATION "Enable build target for Doxygen and Sphinx documentation." ON)
 
-if(BUILD_DOCUMENTATION)
+if(ENABLE_DOCUMENTATION)
   add_subdirectory(doc)
 endif()
 
