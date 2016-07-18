@@ -14,7 +14,7 @@ if(lcm_FOUND)
 
   pods_install_libraries(drakeLCMSystem2)
   drake_install_headers(
-    lcm_basic_vector_translator.h
+    lcm_to_basic_vector_translator.h
     lcm_receive_thread.h
     lcm_subscriber_system.h
     translator_lcmt_drake_signal.h)

@@ -11,15 +11,15 @@ namespace lcm {
 using std::make_unique;
 
 LcmSubscriberSystem::LcmSubscriberSystem(
-    const std::string& channel, const LcmBasicVectorTranslator& translator,
-    LcmReceiveThread* lcm_receive_thread)
+    const std::string& channel,
+    std::unique_ptr<const LcmToBasicVectorTranslator> translator,
+    ::lcm::LCM* lcm)
     : channel_(channel),
-      translator_(translator),
-      lcm_receive_thread_(lcm_receive_thread),
-      basic_vector_(translator.get_basic_vector_size()) {
+      translator_(std::move(translator)),
+      basic_vector_(6) { // translator_.get()->get_basic_vector_size()
   // Initializes the communication layer.
-  ::lcm::Subscription* sub = lcm_receive_thread_->get_lcm()->subscribe(
-      channel_, &LcmSubscriberSystem::HandleMessage, this);
+  ::lcm::Subscription* sub = lcm->subscribe(channel_,
+      &LcmSubscriberSystem::HandleMessage, this);
   sub->setQueueCapacity(1);
 }
 
@@ -45,7 +45,7 @@ std::unique_ptr<SystemOutput<double>> LcmSubscriberSystem::AllocateOutput()
     const {
   // Instantiates a BasicVector object and stores it in a managed pointer.
   std::unique_ptr<BasicVector<double>> data =
-      make_unique<BasicVector<double>>(translator_.get_basic_vector_size());
+      make_unique<BasicVector<double>>(translator_->get_basic_vector_size());
 
   // Instantiates an OutputPort with the above BasicVector as the data type.
   std::unique_ptr<OutputPort<double>> port =
@@ -73,7 +73,7 @@ void LcmSubscriberSystem::HandleMessage(const ::lcm::ReceiveBuffer* rbuf,
                                         const std::string& channel) {
   if (channel == channel_) {
     data_mutex_.lock();
-    translator_.TranslateLcmToBasicVector(rbuf, &basic_vector_);
+    translator_->TranslateLcmToBasicVector(rbuf, &basic_vector_);
     data_mutex_.unlock();
   } else {
     std::cerr << "LcmSubscriberSystem: HandleMessage: WARNING: Received a "

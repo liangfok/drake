@@ -8,7 +8,7 @@
 #include "drake/systems/framework/context.h"
 #include "drake/systems/framework/system_interface.h"
 // #include "drake/systems/framework/vector_interface.h"
-#include "drake/systems/lcm/lcm_basic_vector_translator.h"
+#include "drake/systems/lcm/lcm_to_basic_vector_translator.h"
 #include "drake/systems/lcm/lcm_receive_thread.h"
 
 namespace drake {
@@ -31,22 +31,21 @@ class DRAKELCMSYSTEM2_EXPORT LcmSubscriberSystem :
    * @param[in] translator The translator that converts between LCM message
    * objects and `drake::systems::BasicVector` objects.
    *
-   * @param[in] lcm_receive_thread A pointer to the LCM receive thread, which
-   * contains the LCM subsystem.
-   *
-   * @throws std::runtime_error if @p lcm_receive_thread is nullptr.
+   * @param[in] lcm A pointer to the LCM subsystem. This pointer must not be
+   * null and must be valid during the construction of this
+   * `LcmSubscriberSystem`.
    */
   LcmSubscriberSystem(const std::string& channel,
-                      const LcmBasicVectorTranslator& translator,
-                      LcmReceiveThread* lcm_receive_thread);
+                      const std::unique_ptr<const LcmToBasicVectorTranslator>
+                          translator,
+                      ::lcm::LCM* lcm);
 
   ~LcmSubscriberSystem() override;
 
   std::string get_name() const override;
 
   /**
-   * The default context for this system is one that has zero input ports and
-   * no state.
+   * The default context for this system has zero input ports and no state.
    */
   std::unique_ptr<Context<double>> CreateDefaultContext() const override;
 
@@ -74,10 +73,7 @@ class DRAKELCMSYSTEM2_EXPORT LcmSubscriberSystem :
 
   // The translator that converts between LCM messages and
   // drake::systems::BasicVector.
-  const LcmBasicVectorTranslator& translator_;
-
-  // Implements the loop that receives LCM messages.
-  const LcmReceiveThread* lcm_receive_thread_;
+  std::unique_ptr<const LcmToBasicVectorTranslator> translator_;
 
   // A mutex for protecting data that's shared by the LCM receive thread and
   // the thread that calls LcmSubscriberSystem::Output().

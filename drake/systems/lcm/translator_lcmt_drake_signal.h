@@ -3,7 +3,7 @@
 #include <lcm/lcm-cpp.hpp>
 
 #include "drake/drakeLCMSystem2_export.h"
-#include "drake/systems/lcm/lcm_basic_vector_translator.h"
+#include "drake/systems/lcm/lcm_to_basic_vector_translator.h"
 #include "drake/systems/framework/basic_vector.h"
 
 namespace drake {
@@ -18,7 +18,7 @@ namespace lcm {
  * are identical.
  */
 class DRAKELCMSYSTEM2_EXPORT TranslatorLcmtDrakeSignal
-    : public LcmBasicVectorTranslator {
+    : public LcmToBasicVectorTranslator {
  public:
   /**
    * The constructor.
@@ -27,7 +27,7 @@ class DRAKELCMSYSTEM2_EXPORT TranslatorLcmtDrakeSignal
    * LCM drake signal message.
    */
   explicit TranslatorLcmtDrakeSignal(int size)
-      : LcmBasicVectorTranslator(size) {}
+      : LcmToBasicVectorTranslator(size) {}
 
   void TranslateLcmToBasicVector(
       const ::lcm::ReceiveBuffer* rbuf,
