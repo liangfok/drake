@@ -1,10 +1,10 @@
-#include "drake/systems/lcm/translator_lcmt_drake_signal.h"
+#include "drake/systems/lcm/translator_to_lcmt_drake_signal.h"
 
 #include <lcm/lcm-cpp.hpp>
 
 #include "drake/common/drake_assert.h"
 #include "drake/lcmt_drake_signal.hpp"
-#include "drake/systems/framework/basic_vector.h"
+#include "drake/systems/framework/vector_interface.h"
 
 namespace drake {
 namespace systems {
@@ -12,36 +12,36 @@ namespace lcm {
 
 using std::runtime_error;
 
-void TranslatorLcmtDrakeSignal::TranslateLcmToBasicVector(
+void TranslatorToLcmtDrakeSignal::TranslateLcmToVectorInterface(
     const ::lcm::ReceiveBuffer* rbuf,
-    drake::systems::BasicVector<double>* basic_vector) const {
-  DRAKE_ABORT_UNLESS(basic_vector);
+    VectorInterface<double>* vector_interface) const {
+  DRAKE_ABORT_UNLESS(vector_interface);
 
   // Decodes the LCM message using data from the receive buffer.
   drake::lcmt_drake_signal message;
   int status = message.decode(rbuf->data, 0, rbuf->data_size);
   if (status < 0) {
     throw runtime_error(
-      "drake::systems::lcm::TranslatorLcmtDrakeSignal: "
+      "drake::systems::lcm::TranslatorToLcmtDrakeSignal: "
       "TranslateLcmToBasicVector: ERROR: Failed to decode LCM message.");
   }
 
   // Verifies that the size of the LCM message matches the size of the basic
   // vector. Throws an exception if the sizes do not match.
-  if (message.dim != basic_vector->size()) {
-    throw runtime_error("drake::systems::lcm::TranslatorLcmtDrakeSignal: "
+  if (message.dim != vector_interface->size()) {
+    throw runtime_error("drake::systems::lcm::TranslatorToLcmtDrakeSignal: "
       "TranslateLcmToBasicVector: ERROR: Size of LCM message (" +
       std::to_string(message.dim) +
       ") is not equal to the size of the basic vector (" +
-      std::to_string(basic_vector->size()) + ").");
+      std::to_string(vector_interface->size()) + ").");
   }
-  Eigen::VectorBlock<VectorX<double>> basic_vector_value =
-    basic_vector->get_mutable_value();
+  Eigen::VectorBlock<VectorX<double>> vector_interface_value =
+    vector_interface->get_mutable_value();
 
   // Saves the values in from the LCM message into the basic vector.
   // Assumes that the order of the values in both vectors are identical.
   for (int ii = 0; ii < message.dim; ++ii) {
-    basic_vector_value[ii] = message.val[ii];
+    vector_interface_value[ii] = message.val[ii];
   }
 }
 

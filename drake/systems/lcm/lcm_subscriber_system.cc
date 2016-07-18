@@ -12,7 +12,7 @@ using std::make_unique;
 
 LcmSubscriberSystem::LcmSubscriberSystem(
     const std::string& channel,
-    std::unique_ptr<const LcmToBasicVectorTranslator> translator,
+    std::unique_ptr<const LcmToVectorInterfaceTranslator> translator,
     ::lcm::LCM* lcm)
     : channel_(channel),
       translator_(std::move(translator)),
@@ -45,7 +45,7 @@ std::unique_ptr<SystemOutput<double>> LcmSubscriberSystem::AllocateOutput()
     const {
   // Instantiates a BasicVector object and stores it in a managed pointer.
   std::unique_ptr<BasicVector<double>> data =
-      make_unique<BasicVector<double>>(translator_->get_basic_vector_size());
+      make_unique<BasicVector<double>>(translator_->get_vector_size());
 
   // Instantiates an OutputPort with the above BasicVector as the data type.
   std::unique_ptr<OutputPort<double>> port =
@@ -73,7 +73,7 @@ void LcmSubscriberSystem::HandleMessage(const ::lcm::ReceiveBuffer* rbuf,
                                         const std::string& channel) {
   if (channel == channel_) {
     data_mutex_.lock();
-    translator_->TranslateLcmToBasicVector(rbuf, &basic_vector_);
+    translator_->TranslateLcmToVectorInterface(rbuf, &basic_vector_);
     data_mutex_.unlock();
   } else {
     std::cerr << "LcmSubscriberSystem: HandleMessage: WARNING: Received a "
