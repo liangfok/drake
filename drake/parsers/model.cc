@@ -52,5 +52,51 @@ std::vector<const RigidBody*> Model::GetRigidBodies() const {
   return result;
 }
 
+void Model::AddJoint(std::unique_ptr<DrakeJoint> joint) {
+  joints_[joint->getName()] = std::move(joint);
+}
+
+int Model::GetNumberOfJoints() const {
+  return static_cast<int>(joints_.size());
+}
+
+bool Model::HasJoint(const std::string& name) const {
+  return joints_.find(name) != joints_.end();
+}
+
+DrakeJoint& Model::GetMutableJoint(const std::string& name) const {
+  if (HasJoint(name)) {
+    return *(joints_.find(name)->second.get());
+  } else {
+    throw std::runtime_error("Model has no joint named \"" + name + "\".");
+  }
+}
+
+const DrakeJoint& Model::GetJoint(const std::string& name) const {
+  if (HasJoint(name)) {
+    return *(joints_.find(name)->second.get());
+  } else {
+    throw std::runtime_error("Model has no joint named \"" + name + "\".");
+  }
+}
+
+std::vector<DrakeJoint*> Model::GetMutableJoints() {
+  std::vector<DrakeJoint*> result;
+  for (auto& map_entry : joints_) {
+    DrakeJoint* joint = (&map_entry.second)->get();
+    result.push_back(joint);
+  }
+  return result;
+}
+
+std::vector<const DrakeJoint*> Model::GetJoints() const {
+  std::vector<const DrakeJoint*> result;
+  for (auto& map_entry : joints_) {
+    const DrakeJoint* joint = (&map_entry.second)->get();
+    result.push_back(joint);
+  }
+  return result;
+}
+
 }  // namespace parsers
 }  // namespace drake

@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 
 #include "drake/parsers/model.h"
+#include "drake/systems/plants/joints/DrakeJoint.h"
+#include "drake/systems/plants/joints/RevoluteJoint.h"
 #include "drake/systems/plants/RigidBody.h"
 
 using drake::parsers::Model;
@@ -69,5 +71,66 @@ GTEST_TEST(ModelTest, TestAddAndGetRigidBody) {
     EXPECT_TRUE(body->name() == kBodyName1 || body->name() == kBodyName2);
     EXPECT_TRUE(body->model_name() == kModelName1 ||
         body->model_name() == kModelName2);
+  }
+}
+
+// Tests the ability to add and obtain DrakeJoint objects from a Model object.
+GTEST_TEST(ModelTest, TestAddAndGetJoint) {
+  // Instantiates a Model object.
+  const std::string model_name = "BazModel";
+  Model model(model_name);
+
+  // Adds a couple DrakeJoint objects to the Model object.
+  const std::string kJointName1 = "FooJoint";
+  const std::string kJointName2 = "BarJoint";
+
+  {
+    Eigen::Vector3d x_rotation_axis = Eigen::Vector3d::Zero();
+    x_rotation_axis[0] = 1;
+
+    std::unique_ptr<DrakeJoint> joint_1(new RevoluteJoint(kJointName1,
+        Eigen::Isometry3d::Identity(), x_rotation_axis));
+
+    Eigen::Vector3d joint_2_rotation_axis = Eigen::Vector3d::Zero();
+    joint_2_rotation_axis[0] = 1;
+    std::unique_ptr<DrakeJoint> joint_2(new RevoluteJoint(kJointName2,
+        Eigen::Isometry3d::Identity(), x_rotation_axis));
+
+    model.AddJoint(std::move(joint_1));
+    model.AddJoint(std::move(joint_2));
+  }
+
+  // Verifies that the number of rigid bodies reported by
+  // Model::GetNumberOfRigidBodies() is correct.
+  EXPECT_EQ(model.GetNumberOfJoints(), 2);
+
+  // Verifies that the Model's joint accessors are working.
+  EXPECT_FALSE(model.HasJoint("Non-Existent joint"));
+  EXPECT_TRUE(model.HasJoint(kJointName1));
+  EXPECT_TRUE(model.HasJoint(kJointName2));
+
+  EXPECT_THROW(model.GetJoint("Non-Existent joint"),
+      std::runtime_error);
+
+  EXPECT_NO_THROW(model.GetMutableJoint(kJointName1));
+  EXPECT_NO_THROW(model.GetMutableJoint(kJointName2));
+
+  EXPECT_NO_THROW(model.GetJoint(kJointName1));
+  EXPECT_NO_THROW(model.GetJoint(kJointName2));
+
+  std::vector<DrakeJoint*> mutable_joints = model.GetMutableJoints();
+  EXPECT_EQ(mutable_joints.size(), model.GetNumberOfJoints());
+
+  for (auto joint : mutable_joints) {
+    EXPECT_TRUE(joint->getName() == kJointName1 ||
+        joint->getName() == kJointName2);
+  }
+
+  std::vector<const DrakeJoint*> joints = model.GetJoints();
+  EXPECT_EQ(joints.size(), model.GetNumberOfJoints());
+
+  for (auto joint : joints) {
+    EXPECT_TRUE(joint->getName() == kJointName1 ||
+        joint->getName() == kJointName2);
   }
 }
