@@ -34,6 +34,15 @@ const RigidBody& Model::GetRigidBody(const std::string& name) const {
   }
 }
 
+std::vector<RigidBody*> Model::GetMutableRigidBodies() {
+  std::vector<RigidBody*> result;
+  for (auto& map_entry : rigid_bodies_) {
+    RigidBody* rigid_body = (&map_entry.second)->get();
+    result.push_back(rigid_body);
+  }
+  return result;
+}
+
 std::vector<const RigidBody*> Model::GetRigidBodies() const {
   std::vector<const RigidBody*> result;
   for (auto& map_entry : rigid_bodies_) {

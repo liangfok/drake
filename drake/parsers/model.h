@@ -54,6 +54,12 @@ class DRAKERBM_EXPORT Model {
   /**
    * Returns a vector of pointers to the `RigidBody` objects within the model.
    */
+  std::vector<RigidBody*> GetMutableRigidBodies();
+
+  /**
+   * Returns a vector of const pointers to the `RigidBody` objects within the
+   * model.
+   */
   std::vector<const RigidBody*> GetRigidBodies() const;
 
  private:

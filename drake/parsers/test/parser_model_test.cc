@@ -53,6 +53,15 @@ GTEST_TEST(ModelTest, TestAddAndGetRigidBody) {
   const RigidBody& const_body_ref_2 = model.GetRigidBody(kBodyName2);
   EXPECT_EQ(const_body_ref_2.model_name(), kModelName2);
 
+  std::vector<RigidBody*> mutable_rigid_bodies = model.GetMutableRigidBodies();
+  EXPECT_EQ(mutable_rigid_bodies.size(), model.GetNumberOfRigidBodies());
+
+  for (auto body : mutable_rigid_bodies) {
+    EXPECT_TRUE(body->name() == kBodyName1 || body->name() == kBodyName2);
+    EXPECT_TRUE(body->model_name() == kModelName1 ||
+        body->model_name() == kModelName2);
+  }
+
   std::vector<const RigidBody*> rigid_bodies = model.GetRigidBodies();
   EXPECT_EQ(rigid_bodies.size(), model.GetNumberOfRigidBodies());
 
