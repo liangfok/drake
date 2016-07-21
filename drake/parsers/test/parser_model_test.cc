@@ -17,11 +17,11 @@ GTEST_TEST(ModelTest, TestAddAndGetRigidBody) {
   const std::string kModelName1 = "MG{=?82A+_3e/p'Jps6j*Uuc";
   const std::string kModelName2 = ":6p8[+E?j3(frx/GyggS+JW.";
   {
-    unique_ptr<RigidBody> rigid_body_1(new RigidBody());
+    std::unique_ptr<RigidBody> rigid_body_1(new RigidBody());
     rigid_body_1->name_ = kBodyName1;
     rigid_body_1->model_name_ = kModelName1;
 
-    unique_ptr<RigidBody> rigid_body_2(new RigidBody());
+    std::unique_ptr<RigidBody> rigid_body_2(new RigidBody());
     rigid_body_2->name_ = kBodyName2;
     rigid_body_2->model_name_ = kModelName2;
 
@@ -41,10 +41,10 @@ GTEST_TEST(ModelTest, TestAddAndGetRigidBody) {
   EXPECT_THROW(model.GetRigidBody("Non-Existent rigid body"),
       std::runtime_error);
 
-  RigidBody& body_ref_1 = model.GetRigidBody(kBodyName1);
+  RigidBody& body_ref_1 = model.GetMutableRigidBody(kBodyName1);
   EXPECT_EQ(body_ref_1.model_name(), kModelName1);
 
-  RigidBody& body_ref_2 = model.GetRigidBody(kBodyName2);
+  RigidBody& body_ref_2 = model.GetMutableRigidBody(kBodyName2);
   EXPECT_EQ(body_ref_2.model_name(), kModelName2);
 
   const RigidBody& const_body_ref_1 = model.GetRigidBody(kBodyName1);
@@ -53,7 +53,7 @@ GTEST_TEST(ModelTest, TestAddAndGetRigidBody) {
   const RigidBody& const_body_ref_2 = model.GetRigidBody(kBodyName2);
   EXPECT_EQ(const_body_ref_2.model_name(), kModelName2);
 
-  std::vector<RigidBody*> rigid_bodies = model.GetRigidBodies();
+  std::vector<const RigidBody*> rigid_bodies = model.GetRigidBodies();
   EXPECT_EQ(rigid_bodies.size(), model.GetNumberOfRigidBodies());
 
   for (auto body : rigid_bodies) {

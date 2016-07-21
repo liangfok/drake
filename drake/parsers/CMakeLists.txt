@@ -1,3 +1,6 @@
+# TODO(#2852) We can't yet handle shadowing as a compiler error.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_NO_ERROR_SHADOW}")
+
 add_library_with_exports(LIB_NAME drakeParsers SOURCE_FILES
   model.cc)
 add_dependencies(drakeParsers drakeRBM)

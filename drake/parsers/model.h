@@ -29,6 +29,12 @@ class DRAKERBM_EXPORT Model {
   void AddRigidBody(std::unique_ptr<RigidBody> rigid_body);
 
   /**
+   * Returns `true` if and only if this model has a rigid body with a name equal
+   * to @p name.
+   */
+  bool HasRigidBody(const std::string& name) const;
+
+  /**
    * Returns the number of rigid bodies within this model.
    */
   int GetNumberOfRigidBodies() const;
@@ -37,7 +43,7 @@ class DRAKERBM_EXPORT Model {
    * Returns a reference to a rigid body named @p name. If no such rigid body
    * exists, throw a `std::runtime_error`.
    */
-  RigidBody& GetRigidBody(const std::string& name) const;
+  RigidBody& GetMutableRigidBody(const std::string& name) const;
 
   /**
    * Returns a const reference to a rigid body named @p name. If no such rigid
@@ -48,12 +54,15 @@ class DRAKERBM_EXPORT Model {
   /**
    * Returns a vector of pointers to the `RigidBody` objects within the model.
    */
-  std::vector<RigidBody*> GetRigidBodies() const;
+  std::vector<const RigidBody*> GetRigidBodies() const;
 
  private:
   std::string model_name_ {};
 
-  std::map<const std::string name, std::unique_ptr<RigidBody>> rigid_bodies_;
+  // A map for storing the RigidBody objects that are part of this model.
+  // The key is the name of the rigid body and the value is a unique pointer
+  // to the rigid body itself.
+  std::map<const std::string, std::unique_ptr<RigidBody>> rigid_bodies_;
 
   // std::vector<std::unique_ptr<DrakeJoint>> joints_;
 
