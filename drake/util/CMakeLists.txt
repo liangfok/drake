@@ -1,3 +1,6 @@
+# TODO(#2852) We can't yet handle shadowing as a compiler error.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_FLAGS_NO_ERROR_SHADOW}")
+
 if(simulink_FOUND)
   add_mex(realtime realtime.cpp)
 endif()
@@ -128,7 +131,7 @@ if(0)  # NOT WIN32
     "# Usage:\n"
     "#   % drake_debug_mex.sh [args]\n"
     "# will set up the environment and then run:\n"
-    "#   % args pod-build/bin/drake-debug-mex\n"
+    "#   % args drake-debug-mex\n"
     "#\n"
     "# For example,\n"
     "#   % drake_debug_mex.sh\n"

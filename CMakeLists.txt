@@ -54,6 +54,18 @@ function(drake_forceupdate proj)
   endif()
 endfunction()
 
+function(drake_depend_submodule_sync proj)
+  # All targets that contain a submodule update command, or depend on a
+  # target that does, need to depend on the submodule-sync target.
+  if(AUTO_UPDATE_EXTERNALS)
+    foreach(t ${proj} ${proj}-update)
+      if(TARGET ${t})
+        add_dependencies(${t} submodule-sync)
+      endif()
+    endforeach()
+  endif()
+endfunction()
+
 # Require Java at the super-build level since libbot cannot configure without finding Java
 find_package(Java 1.6 REQUIRED)
 include(UseJava)
@@ -88,6 +100,7 @@ else()
   option(WITH_DIRECTOR "vtk-based visualization tool and robot user interface" ON) # not win32 yet.  it builds on windows, but requires manually installation of vtk, etc.  perhaps make a precompiled director pod (a bit like snopt)
   option(WITH_LIBBOT "simple open-gl visualizer + lcmgl for director" ON) # there is hope, but i spent a long time cleaning up c/c++ language errors trying to make msvc happy.. and still had a long way to go.
   option(WITH_NLOPT "nonlinear optimization solver" ON)
+  option(WITH_MOSEK "convex optimization solver; free for academics" OFF)
   # IPOPT is currently disabled on Mac due to MATLAB compatibility
   # issues: https://github.com/RobotLocomotion/drake/issues/2578
   if (NOT APPLE)
@@ -125,7 +138,6 @@ cmake_dependent_option(WITH_SPOTLESS "polynomial optimization front-end for MATL
 cmake_dependent_option(WITH_BERTINI "solve polynomial equations; free but pod requires permissions (can't redistribute)" OFF "NOT DISABLE_MATLAB;matlab;NOT WIN32" OFF)
 cmake_dependent_option(WITH_GLOPTIPOLY "free global polynomial optimization tooblox" OFF "NOT DISABLE_MATLAB;matlab;NOT WIN32" OFF)
 cmake_dependent_option(WITH_IRIS "fast approximate convex segmentation" OFF "NOT DISABLE_MATLAB;matlab;NOT WIN32;WITH_MOSEK" OFF)
-cmake_dependent_option(WITH_MOSEK "convex optimization solver; free for academics" OFF "NOT DISABLE_MATLAB;matlab;NOT WIN32" OFF)
 cmake_dependent_option(WITH_SEDUMI "semi-definite programming solver" OFF "NOT DISABLE_MATLAB;matlab;NOT WIN32" OFF)
 cmake_dependent_option(WITH_YALMIP "free optimization front-end for MATLAB" OFF "NOT DISABLE_MATLAB;matlab;NOT WIN32" OFF)
 cmake_dependent_option(WITH_XFOIL "use w/ XFOIL to compute aerodynamic coefficients for airfoils" OFF "NOT DISABLE_MATLAB;matlab;NOT WIN32" OFF)
@@ -198,6 +210,17 @@ set(lcm_IS_PUBLIC TRUE)
 set(lcm_ADDITIONAL_CMAKE_CONFIGURE_ARGS -DBUILD_SHARED_LIBS=ON)
 if(WITH_GTK)
   set(lcm_ADDITIONAL_CMAKE_CONFIGURE_ARGS ${lcm_ADDITIONAL_CMAKE_CONFIGURE_ARGS} -DCMAKE_PREFIX_PATH=${CMAKE_CURRENT_SOURCE_DIR}/externals/gtk/gtk3)
+endif()
+if(WIN32)
+  # On Windows we always need a Release LCM for compatibility with Python libraries.
+  if(CMAKE_CONFIGURATION_TYPES)
+    # This is a multi-config generator, so we need to specify the configuration at build time.
+    set(lcm_BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release)
+    set(lcm_INSTALL_COMMAND ${CMAKE_COMMAND} --build . --config Release --target install)
+  else()
+    # This is a single-config generator, so we need to specify the configuration to CMake.
+    list(APPEND lcm_ADDITIONAL_CMAKE_CONFIGURE_ARGS -DCMAKE_BUILD_TYPE:STRING=Release)
+  endif()
 endif()
 set(libbot_IS_CMAKE_POD TRUE)
 set(libbot_IS_PUBLIC TRUE)
@@ -339,10 +362,6 @@ foreach(proj ${EXTERNAL_PROJECTS})
 
     if(AUTO_UPDATE_EXTERNALS)
       set(${proj}_UPDATE_COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR} ${${proj}_DOWNLOAD_COMMAND})
-
-      # Synchronize the submodule url now so parallel updates do not conflict later.
-      execute_process(COMMAND ${GIT_EXECUTABLE} submodule sync -- ${${proj}_GIT_SUBMODULE_PATH}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     else()
       set(${proj}_UPDATE_COMMAND "")
     endif()
@@ -364,12 +383,21 @@ foreach(proj ${EXTERNAL_PROJECTS})
       if(CMAKE_VERBOSE_MAKEFILE)
         set(PODS_VERBOSE_MAKEFILE "-DCMAKE_VERBOSE_MAKEFILE=ON")
       endif()
+      foreach(c BUILD INSTALL)
+        if(DEFINED ${proj}_${c}_COMMAND)
+          set(maybe_${c}_COMMAND ${c}_COMMAND ${${proj}_${c}_COMMAND})
+        else()
+          set(maybe_${c}_COMMAND "")
+        endif()
+      endforeach()
       ExternalProject_Add(${proj}
         SOURCE_DIR ${${proj}_SOURCE_DIR}
         BINARY_DIR ${${proj}_BINARY_DIR}
         DOWNLOAD_COMMAND ${${proj}_DOWNLOAD_COMMAND}
         DOWNLOAD_DIR ${CMAKE_CURRENT_SOURCE_DIR}
         UPDATE_COMMAND ${${proj}_UPDATE_COMMAND}
+        ${maybe_BUILD_COMMAND}
+        ${maybe_INSTALL_COMMAND}
         BUILD_ALWAYS 1
         INDEPENDENT_STEP_TARGETS update
         DEPENDS ${deps}
@@ -378,6 +406,7 @@ foreach(proj ${EXTERNAL_PROJECTS})
         ${${proj}_ADDITIONAL_CMAKE_CONFIGURE_ARGS}
         ${${proj}_ADDITIONAL_BUILD_ARGS})
       drake_forceupdate(${proj})
+      drake_depend_submodule_sync(${proj})
     else() # not a CMake POD
       if(NOT ${proj}_BINARY_DIR)
         # In-source build for non-CMake projects.
@@ -418,6 +447,7 @@ foreach(proj ${EXTERNAL_PROJECTS})
         DEPENDS ${deps}
         ${${proj}_ADDITIONAL_BUILD_ARGS})
       drake_forceupdate(${proj})
+      drake_depend_submodule_sync(${proj})
       # message(STATUS "${proj}_BUILD_COMMAND: ${${proj}_BUILD_COMMAND}")
     endif()
   else()
@@ -442,6 +472,7 @@ foreach(proj ${EXTERNAL_PROJECTS})
       ${PODS_VERBOSE_MAKEFILE}
       ${${proj}_ADDITIONAL_CMAKE_CONFIGURE_ARGS}
       ${${proj}_ADDITIONAL_BUILD_ARGS})
+    drake_depend_submodule_sync(${proj})
   endif()
 
 endforeach()
@@ -502,10 +533,6 @@ foreach(example IN ITEMS LittleDog)
     set(${example}_DOWNLOAD_COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive -- drake/examples/${example})
     if(AUTO_UPDATE_EXTERNALS)
       set(${example}_UPDATE_COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR} ${${example}_DOWNLOAD_COMMAND})
-
-      # Synchronize the submodule url now so parallel updates do not conflict later.
-      execute_process(COMMAND ${GIT_EXECUTABLE} submodule sync -- drake/examples/${example}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     else()
       set(${example}_UPDATE_COMMAND "")
     endif()
@@ -519,10 +546,20 @@ foreach(example IN ITEMS LittleDog)
       BUILD_COMMAND ""
       INSTALL_COMMAND "")
     drake_forceupdate(download-${example})
+    drake_depend_submodule_sync(download-${example})
     add_dependencies(drake download-${example})
     add_dependencies(download-all download-${example})
   endif()
 endforeach()
+
+if(AUTO_UPDATE_EXTERNALS)
+  # Start every build by synchronizing submodule URLs.  We do this as a
+  # separate target so all URLs can be synchronized at once instead of
+  # conflicting during parallel updates later.
+  add_custom_target(submodule-sync
+    COMMAND ${GIT_EXECUTABLE} submodule --quiet sync --
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
 
 string(REPLACE ";" " " PROJECT_LIST "${PROJECT_LIST}")
 add_custom_target(list-project-dirs COMMAND echo "${PROJECT_LIST}")

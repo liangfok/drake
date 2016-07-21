@@ -91,6 +91,13 @@ include_directories(BEFORE ${PROJECT_SOURCE_DIR}/..)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=all -Werror=ignored-qualifiers")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # TODO(#2852) Turn on shadow checking for g++ once we use a version that fixes
+    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57709
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=shadow")
+  endif()
+  set(CXX_FLAGS_NO_ERROR_SHADOW "-Wno-error=shadow -Wno-shadow")
+  set(CXX_FLAGS_NO_SIGN_COMPARE "-Wno-sign-compare")
 elseif(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4251")
   # disable warning C4251: e.g.'RigidBody::linkname' : class 'std::basic_string<_Elem,_Traits,_Ax>' needs to have dll-interface to be used by clients of class 'RigidBody'
@@ -116,6 +123,9 @@ elseif(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj") # after receiving RigidBodyTree.cpp : fatal error C1128: number of sections exceeded object file format limit: compile with /bigobj
 
   add_definitions(-D_USE_MATH_DEFINES) # to get math constants on MSVC (see https://msdn.microsoft.com/en-us/library/4hwaceh6.aspx)
+
+  set(CXX_FLAGS_NO_ERROR_SHADOW "/wd4456 /wd4457")
+  set(CXX_FLAGS_NO_SIGN_COMPARE "/wd4018")
 endif()
 
 # similar to the export headers, any other generated headers will be installed to build/include/drake, but will be created in ${PROJECT_BINARY_DIR}/exports/drake
@@ -312,13 +322,11 @@ add_subdirectory(bindings)
 include(cmake/matlab_pods.cmake)
 pods_configure_matlab_paths()
 
-file(RELATIVE_PATH relpath ${CMAKE_INSTALL_PREFIX}/matlab ${CMAKE_CURRENT_SOURCE_DIR})
-
-message(STATUS "Writing addpath_drake.m and rmpath_drake.m to ${CMAKE_INSTALL_PREFIX}/matlab")
+message(STATUS "Writing path utilities to ${CMAKE_INSTALL_PREFIX}/matlab")
 file(WRITE ${CMAKE_INSTALL_PREFIX}/matlab/addpath_drake.m
   "function addpath_drake()\n"
-  "  mfiledir = fileparts(which(mfilename));\n"
-  "  wd = cd(fullfile(mfiledir,'${relpath}'));\n"
+  "  addpath(fullfile('${CMAKE_INSTALL_PREFIX}', 'matlab'));\n"
+  "  wd = cd('${CMAKE_CURRENT_SOURCE_DIR}');\n"
   "  addpath_drake();\n"
   "  cd(wd);\n"
   "end\n"
@@ -326,10 +334,21 @@ file(WRITE ${CMAKE_INSTALL_PREFIX}/matlab/addpath_drake.m
 
 file(WRITE ${CMAKE_INSTALL_PREFIX}/matlab/rmpath_drake.m
   "function rmpath_drake()\n"
-  "  mfiledir = fileparts(which(mfilename));\n"
-  "  wd = cd(fullfile(mfiledir,'${relpath}'));\n"
+  "  wd = cd('${CMAKE_CURRENT_SOURCE_DIR}');\n"
   "  rmpath_drake();\n"
   "  cd(wd);\n")
+
+file(WRITE ${CMAKE_INSTALL_PREFIX}/matlab/get_drake_binary_dir.m
+  "function [binary_dir] = get_drake_binary_dir()\n"
+  "  binary_dir = '${PROJECT_BINARY_DIR}';\n"
+  "end\n"
+  "\n")
+
+file(WRITE ${CMAKE_INSTALL_PREFIX}/matlab/get_drake_install_dir.m
+  "function [install_dir] = get_drake_install_dir()\n"
+  "  install_dir = '${CMAKE_INSTALL_PREFIX}';\n"
+  "end\n"
+  "\n")
 
 find_program(avl avl PATHS ${CMAKE_INSTALL_DIR}/bin)
 find_program(xfoil xfoil PATHS ${CMAKE_INSTALL_DIR}/bin)
@@ -361,3 +380,5 @@ endif()
 if(IS_DIRECTORY doc/textbook)
   add_subdirectory(doc/textbook)
 endif()
+
+add_subdirectory(regtests)
