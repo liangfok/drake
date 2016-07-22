@@ -17,23 +17,23 @@ using std::vector;
 RigidBody::RigidBody()
     : collision_filter_group(DrakeCollision::DEFAULT_GROUP),
       collision_filter_ignores(DrakeCollision::NONE_MASK),
-      parent(nullptr) {
-  robotnum = 0;
-  position_num_start = 0;
-  velocity_num_start = 0;
-  body_index = 0;
-  mass = 0.0;
-  com = Vector3d::Zero();
-  I << drake::SquareTwistMatrix<double>::Zero();
+      parent_(nullptr) {
+  model_id_ = 0;
+  position_num_start_ = 0;
+  velocity_num_start_ = 0;
+  body_index_ = 0;
+  mass_ = 0.0;
+  com_ = Vector3d::Zero();
+  I_ << drake::SquareTwistMatrix<double>::Zero();
 }
 
 const std::string& RigidBody::name() const { return name_; }
 
 const std::string& RigidBody::model_name() const { return model_name_; }
 
-int RigidBody::get_model_id() const { return robotnum; }
+int RigidBody::get_model_id() const { return model_id_; }
 
-void RigidBody::set_model_id(int model_id) { robotnum = model_id; }
+void RigidBody::set_model_id(int model_id) { model_id_ = model_id; }
 
 void RigidBody::setJoint(std::unique_ptr<DrakeJoint> new_joint) {
   this->joint = move(new_joint);
@@ -49,7 +49,7 @@ const DrakeJoint& RigidBody::getJoint() const {
   }
 }
 
-bool RigidBody::hasParent() const { return parent != nullptr; }
+bool RigidBody::hasParent() const { return parent_ != nullptr; }
 
 void RigidBody::addVisualElement(const DrakeShapes::VisualElement& element) {
   visual_elements.push_back(element);
@@ -96,7 +96,7 @@ bool RigidBody::appendCollisionElementIdsFromThisBody(
 
 void RigidBody::ApplyTransformToJointFrame(
     const Eigen::Isometry3d& transform_body_to_joint) {
-  I = transformSpatialInertia(transform_body_to_joint, I);
+  I_ = transformSpatialInertia(transform_body_to_joint, I_);
   for (auto& v : visual_elements) {
     v.SetLocalTransform(transform_body_to_joint * v.getLocalTransform());
   }

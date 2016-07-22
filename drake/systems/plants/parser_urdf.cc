@@ -41,7 +41,7 @@ namespace {
 int findLinkIndex(RigidBodyTree* tree, string link_name) {
   int index = -1;
   for (unsigned int i = 0; i < tree->bodies.size(); i++) {
-    if (link_name.compare(tree->bodies[i]->name_) == 0) {
+    if (link_name.compare(tree->bodies[i]->get_name()) == 0) {
       index = i;
       break;
     }
@@ -97,12 +97,12 @@ void parseInertial(RigidBody* body, XMLElement* node) {
   if (origin) originAttributesToTransform(origin, T);
 
   XMLElement* mass = node->FirstChildElement("mass");
-  if (mass) parseScalarAttribute(mass, "value", body->mass);
+  if (mass) parseScalarAttribute(mass, "value", body->get_mass());
 
   body->com << T(0, 3), T(1, 3), T(2, 3);
 
   drake::SquareTwistMatrix<double> I = drake::SquareTwistMatrix<double>::Zero();
-  I.block(3, 3, 3, 3) << body->mass * Matrix3d::Identity();
+  I.block(3, 3, 3, 3) << body->get_mass() * Matrix3d::Identity();
 
   XMLElement* inertia = node->FirstChildElement("inertia");
   if (inertia) {
@@ -117,7 +117,7 @@ void parseInertial(RigidBody* body, XMLElement* node) {
     parseScalarAttribute(inertia, "izz", I(2, 2));
   }
 
-  body->I = transformSpatialInertia(T, I);
+  body->setI(transformSpatialInertia(T, I));
 }
 
 // Adds a material to the supplied material map. If the material is already
