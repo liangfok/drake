@@ -31,8 +31,7 @@ GTEST_TEST(ModelTest, TestAddAndGetRigidBody) {
     model.AddRigidBody(std::move(rigid_body_2));
   }
 
-  // Verifies that the number of rigid bodies reported by
-  // Model::GetNumberOfRigidBodies() is correct.
+  // Verifies that the number of rigid bodies is correct.
   EXPECT_EQ(model.GetNumberOfRigidBodies(), 2);
 
   // Verifies that the Model's RigidBody accessors are working.
@@ -100,8 +99,7 @@ GTEST_TEST(ModelTest, TestAddAndGetJoint) {
     model.AddJoint(std::move(joint_2));
   }
 
-  // Verifies that the number of rigid bodies reported by
-  // Model::GetNumberOfRigidBodies() is correct.
+  // Verifies that the number of joints is correct.
   EXPECT_EQ(model.GetNumberOfJoints(), 2);
 
   // Verifies that the Model's joint accessors are working.
@@ -132,5 +130,63 @@ GTEST_TEST(ModelTest, TestAddAndGetJoint) {
   for (auto joint : joints) {
     EXPECT_TRUE(joint->getName() == kJointName1 ||
         joint->getName() == kJointName2);
+  }
+}
+
+// Tests the ability to add and obtain RigidBodyFrame objects from a Model
+// object.
+GTEST_TEST(ModelTest, TestAddAndGetFrame) {
+  // Instantiates a Model object.
+  const std::string model_name = "BazModel";
+  Model model(model_name);
+
+  // Adds a couple RigidBodyFrame objects to the Model object.
+  const std::string kFrameName1 = "FooFrame";
+  const std::string kFrameName2 = "BarFrame";
+
+  {
+    RigidBody rigid_body;
+
+    std::unique_ptr<RigidBodyFrame> frame_1(new RigidBodyFrame(kFrameName1,
+        &rigid_body));
+
+    std::unique_ptr<RigidBodyFrame> frame_2(new RevoluteJoint(kFrameName2,
+        &rigid_body));
+
+    model.AddFrame(std::move(frame_1));
+    model.AddFrame(std::move(frame_2));
+  }
+
+  // Verifies that the number of frames is correct.
+  EXPECT_EQ(model.GetNumberOfFrames(), 2);
+
+  // Verifies that the Model's frame accessors are working.
+  EXPECT_FALSE(model.HasFrame("Non-Existent frame"));
+  EXPECT_TRUE(model.HasFrame(kFrameName1));
+  EXPECT_TRUE(model.HasFrame(kFrameName2));
+
+  EXPECT_THROW(model.GetFrame("Non-Existent frame"),
+      std::runtime_error);
+
+  EXPECT_NO_THROW(model.GetMutableFrame(kFrameName1));
+  EXPECT_NO_THROW(model.GetMutableFrame(kFrameName2));
+
+  EXPECT_NO_THROW(model.GetFrame(kFrameName1));
+  EXPECT_NO_THROW(model.GetFrame(kFrameName2));
+
+  std::vector<RigidBodyFrame*> mutable_frames = model.GetMutableFrames();
+  EXPECT_EQ(mutable_frames.size(), model.GetNumberOfFrames());
+
+  for (auto frame : mutable_frames) {
+    EXPECT_TRUE(frame->get_name() == kFrameName1 ||
+        frame->get_name() == kFrameName2);
+  }
+
+  std::vector<const RigidBodyFrame*> frames = model.GetFrames();
+  EXPECT_EQ(frames.size(), model.GetNumberOfFrames());
+
+  for (auto frame : frames) {
+    EXPECT_TRUE(frame->get_name() == kFrameName1 ||
+        frame->get_name() == kFrameName2);
   }
 }

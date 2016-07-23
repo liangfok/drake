@@ -98,5 +98,51 @@ std::vector<const DrakeJoint*> Model::GetJoints() const {
   return result;
 }
 
+void Model::AddFrame(std::unique_ptr<RigidBodyFrame> frame) {
+  frames_[frame->get_name()] = std::move(frame);
+}
+
+int Model::GetNumberOfFrames() const {
+  return static_cast<int>(frames_.size());
+}
+
+bool Model::HasFrame(const std::string& name) const {
+  return frames_.find(name) != frames_.end();
+}
+
+RigidBodyFrame& Model::GetMutableFrame(const std::string& name) const {
+  if (HasFrame(name)) {
+    return *(frames_.find(name)->second.get());
+  } else {
+    throw std::runtime_error("Model has no frame named \"" + name + "\".");
+  }
+}
+
+const RigidBodyFrame& Model::GetFrame(const std::string& name) const {
+  if (HasFrame(name)) {
+    return *(frames_.find(name)->second.get());
+  } else {
+    throw std::runtime_error("Model has no frame named \"" + name + "\".");
+  }
+}
+
+std::vector<RigidBodyFrame*> Model::GetMutableFrames() {
+  std::vector<RigidBodyFrame*> result;
+  for (auto& map_entry : frames_) {
+    RigidBodyFrame* frame = (&map_entry.second)->get();
+    result.push_back(frame);
+  }
+  return result;
+}
+
+std::vector<const RigidBodyFrame*> Model::GetFrames() const {
+  std::vector<const RigidBodyFrame*> result;
+  for (auto& map_entry : frames_) {
+    const RigidBodyFrame* frame = (&map_entry.second)->get();
+    result.push_back(frame);
+  }
+  return result;
+}
+
 }  // namespace parsers
 }  // namespace drake

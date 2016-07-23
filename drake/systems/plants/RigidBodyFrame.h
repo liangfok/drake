@@ -39,6 +39,11 @@ class DRAKERBM_EXPORT RigidBodyFrame {
    */
   int get_model_id() { return body->get_model_id(); }
 
+  /**
+   * Returns the name of this frame.
+   */
+  const std::string& get_name() const { return name; }
+
   std::string name;
   RigidBody* body;
   Eigen::Isometry3d transform_to_body;
