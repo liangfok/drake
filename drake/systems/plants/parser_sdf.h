@@ -20,6 +20,13 @@ namespace sdf {
 ///
 /// @param[in] urdf_filename The URDF file containing the model to be added.
 ///
+/// @param[in] model_name The model within the SDF to add. Throws a
+/// std::runtime_error if no such model exists.
+///
+/// @param[in] model_instance_name The instance name of the model. This must be
+/// unique among all model instances in this `RigidBodySystem`. Throws a
+/// std::runtime_error if no such model exists.
+///
 /// @param[in] package_map A map of ROS package names to their paths. These are
 /// the packages to search through when finding files referenced in the URDF.
 ///
@@ -30,6 +37,7 @@ namespace sdf {
 DRAKERBM_EXPORT
 void AddRobotFromSDFInWorldFrame(
     const std::string& sdf_filename,
+    const std::string& model_name, const std::string& model_instance_name,
     const DrakeJoint::FloatingBaseType floating_base_type, RigidBodyTree* tree);
 
 // TODO(liang.fok) Replace this method with one that returns a Model object.
@@ -37,6 +45,13 @@ void AddRobotFromSDFInWorldFrame(
 /// Adds a SDF model to a rigid body system.
 ///
 /// @param[in] urdf_filename The URDF file containing the model to be added.
+///
+/// @param[in] model_name The name of the model within the SDF to add. Throws a
+/// std::runtime_error if no such model exists.
+///
+/// @param[in] model_instance_name The instance name of the model. This must be
+/// unique among all model instances in this `RigidBodySystem`. Throws a
+/// std::runtime_error a model instance already exists with this name.
 ///
 /// @param[in] package_map A map of ROS package names to their paths. These are
 /// the packages to search through when finding files referenced in the URDF.
@@ -49,6 +64,8 @@ void AddRobotFromSDFInWorldFrame(
 /// @param[out] tree The rigid body tree to which to add the model.
 DRAKERBM_EXPORT
 void AddRobotFromSDF(const std::string& sdf_filename,
+                     const std::string& model_name,
+                     const std::string& model_instance_name,
                      const DrakeJoint::FloatingBaseType floating_base_type,
                      std::shared_ptr<RigidBodyFrame> weld_to_frame,
                      RigidBodyTree* tree);

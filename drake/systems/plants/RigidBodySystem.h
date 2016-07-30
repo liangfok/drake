@@ -186,8 +186,17 @@ class DRAKERBSYSTEM_EXPORT RigidBodySystem {
    *
    * @param[in] sdf_filename The name of the SDF file containing the models to
    * add to this rigid body system.
+   *
+   * @param[in] model_name The name of the model within the SDF to add. Throws a
+   * `std::runtime_error` if no such model exists.
+   *
+   * @param[in] model_instance_name The instance name of the model. This must be
+   * unique among all model instances in this `RigidBodySystem`. Throws a
+   * `std::runtime_error` if a model instance already exists with this name.
+   *
    * @param[in] floating_base_type The type of floating base to use to connect
    * the models within the SDF file to the world.
+   *
    * @param[in] weld_to_frame The frame used for connecting the models in the
    * SDF to the rigid body tree within this rigid body system. Note that this
    * specifies both the existing frame in the rigid body tree to connect the
@@ -197,6 +206,8 @@ class DRAKERBSYSTEM_EXPORT RigidBodySystem {
    * relative to the world's frame.
    */
   void addRobotFromSDF(const std::string& sdf_filename,
+                       const std::string& model_name,
+                       const std::string& model_instance_name,
                        const DrakeJoint::FloatingBaseType floating_base_type =
                            DrakeJoint::QUATERNION,
                        std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);

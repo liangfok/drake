@@ -925,10 +925,13 @@ void RigidBodySystem::addRobotFromURDF(
 
 void RigidBodySystem::addRobotFromSDF(
     const string& sdf_filename,
+    const std::string& model_name,
+    const std::string& model_instance_name,
     const DrakeJoint::FloatingBaseType floating_base_type,
     std::shared_ptr<RigidBodyFrame> weld_to_frame) {
   // Adds the robot to the rigid body tree.
-  drake::parsers::sdf::AddRobotFromSDF(sdf_filename, floating_base_type,
+  drake::parsers::sdf::AddRobotFromSDF(sdf_filename, model_name,
+                                       model_instance_name, floating_base_type,
                                        weld_to_frame, tree.get());
 
   // Parses the additional SDF elements that are understood by RigidBodySystem,

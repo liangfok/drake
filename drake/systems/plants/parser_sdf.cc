@@ -758,13 +758,18 @@ void parseSDF(RigidBodyTree* model, XMLDocument* xml_doc,
 
 void AddRobotFromSDFInWorldFrame(
     const string& filename,
+    const std::string& model_name,
+    const std::string& model_instance_name,
     const DrakeJoint::FloatingBaseType floating_base_type,
     RigidBodyTree* tree) {
-  AddRobotFromSDF(filename, floating_base_type, nullptr, tree);
+  AddRobotFromSDF(filename, model_name, model_instance_name, floating_base_type,
+      nullptr, tree);
 }
 
 void AddRobotFromSDF(
     const string& filename,
+    const std::string& model_name,
+    const std::string& model_instance_name,
     const DrakeJoint::FloatingBaseType floating_base_type,
     std::shared_ptr<RigidBodyFrame> weld_to_frame,
     RigidBodyTree* tree) {
