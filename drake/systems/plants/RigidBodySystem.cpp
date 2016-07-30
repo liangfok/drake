@@ -717,7 +717,8 @@ void parseURDF(RigidBodySystem& sys, XMLDocument* xml_doc) {
   parseRobot(sys, node);
 }
 
-void parseSDFJoint(RigidBodySystem& sys, int model_id, XMLElement* node,
+void parseSDFJoint(RigidBodySystem& sys, int model_id,
+                   const std::string& model_instance_name, XMLElement* node,
                    PoseMap& pose_map) {
   // Obtains the name of the joint.
   const char* attr = node->Attribute("name");
@@ -733,8 +734,9 @@ void parseSDFJoint(RigidBodySystem& sys, int model_id, XMLElement* node,
   }
 }
 
-void parseSDFLink(RigidBodySystem& sys, int model_id, XMLElement* node,
-                  PoseMap& pose_map) {
+void parseSDFLink(RigidBodySystem& sys, int model_id,
+    const std::string& model_instance_name, XMLElement* node,
+    PoseMap& pose_map) {
   // Obtains the name of the body.
   const char* attr = node->Attribute("name");
   if (!attr) throw runtime_error("ERROR: link tag is missing name attribute");
@@ -788,7 +790,8 @@ void parseSDFLink(RigidBodySystem& sys, int model_id, XMLElement* node,
   }
 }
 
-void parseSDFModel(RigidBodySystem& sys, int model_id, XMLElement* node) {
+void parseSDFModel(RigidBodySystem& sys, int model_id,
+    const std::string& model_instance_name, XMLElement* node) {
   // A pose map is necessary since SDF specifies almost everything in the
   // global coordinate frame. The pose map contains transforms from a link's
   // coordinate frame to the model's coordinate frame.
@@ -799,17 +802,19 @@ void parseSDFModel(RigidBodySystem& sys, int model_id, XMLElement* node) {
     throw runtime_error("Error: your model must have a name attribute");
 
   // Parses each link element within the model.
-  for (XMLElement* elnode = node->FirstChildElement("link"); elnode;
-       elnode = elnode->NextSiblingElement("link"))
-    parseSDFLink(sys, model_id, elnode, pose_map);
+  for (XMLElement* link_node = node->FirstChildElement("link"); link_node;
+       link_node = link_node->NextSiblingElement("link"))
+    parseSDFLink(sys, model_id, model_instance_name, link_node, pose_map);
 
   // Parses each joint element within the model.
-  for (XMLElement* elnode = node->FirstChildElement("joint"); elnode;
-       elnode = elnode->NextSiblingElement("joint"))
-    parseSDFJoint(sys, model_id, elnode, pose_map);
+  for (XMLElement* joint_node = node->FirstChildElement("joint"); joint_node;
+       joint_node = joint_node->NextSiblingElement("joint"))
+    parseSDFJoint(sys, model_id, model_instance_name, joint_node, pose_map);
 }
 
-void parseSDF(RigidBodySystem& sys, XMLDocument* xml_doc) {
+void parseSDF(RigidBodySystem& sys, XMLDocument* xml_doc,
+    const std::string& model_name,
+    const std::string& model_instance_name) {
   XMLElement* node = xml_doc->FirstChildElement("sdf");
 
   if (!node) {
@@ -817,44 +822,72 @@ void parseSDF(RigidBodySystem& sys, XMLDocument* xml_doc) {
         "ERROR: This xml file does not contain an sdf tag");
   }
 
-  // Obtains the final model ID after all models in the SDF are added to the
-  // RigidBodyTree. This is simply the current model ID since the models in this
-  // SDF were already added to the rigid body tree prior to this method being
-  // called. It's possible for final_model_id to be greater than the number of
-  // models in the SDF file since multiple SDF files can be loaded into this
-  // RigidBodySystem. In fact, the same SDF file can be added to this
-  // RigidBodySystem multiple times. This is feasible since the rigid bodies
-  // that belong to a particular model are all assigned a model ID that's unique
-  // to that model.
-  int final_model_id = sys.getRigidBodyTree()->get_current_model_id();
+  // // Obtains the final model ID after all models in the SDF are added to the
+  // // RigidBodyTree. This is simply the current model ID since the models in this
+  // // SDF were already added to the rigid body tree prior to this method being
+  // // called. It's possible for final_model_id to be greater than the number of
+  // // models in the SDF file since multiple SDF files can be loaded into this
+  // // RigidBodySystem. In fact, the same SDF file can be added to this
+  // // RigidBodySystem multiple times. This is feasible since the rigid bodies
+  // // that belong to a particular model are all assigned a model ID that's unique
+  // // to that model.
+  // int final_model_id = sys.getRigidBodyTree()->get_current_model_id();
 
-  // Computes the number of models in the SDF. This includes only the models
-  // that are not part of the world. This is correct because even though
-  // RigidBodyTree assigns a unique model ID to each model regardless of whether
-  // it is part of the world, the models that are part of the world are added
-  // first and thus have smaller model IDs. Since the models that are not part
-  // of the world are the ones that need to be parsed by the RigidBodySystem,
-  // we only count the models that are not part of the world.
-  int number_of_models_in_sdf = 0;
-  {
-    for (XMLElement* elnode = node->FirstChildElement("model"); elnode;
-         elnode = elnode->NextSiblingElement("model")) {
-      ++number_of_models_in_sdf;
+  // // Computes the number of models in the SDF. This includes only the models
+  // // that are not part of the world. This is correct because even though
+  // // RigidBodyTree assigns a unique model ID to each model regardless of whether
+  // // it is part of the world, the models that are part of the world are added
+  // // first and thus have smaller model IDs. Since the models that are not part
+  // // of the world are the ones that need to be parsed by the RigidBodySystem,
+  // // we only count the models that are not part of the world.
+  // int number_of_models_in_sdf = 0;
+  // {
+  //   for (XMLElement* elnode = node->FirstChildElement("model"); elnode;
+  //        elnode = elnode->NextSiblingElement("model")) {
+  //     ++number_of_models_in_sdf;
+  //   }
+  // }
+
+  // // Computes the ID of the first model in the SDF. Since this SDF was just
+  // // added to the RigidBodyTree, the model ID of the first model in the SDF
+  // // is simply the final_model_id minus the number of models in the SDF that
+  // // are not part of the world..
+  // int model_id = final_model_id - number_of_models_in_sdf;
+
+  // The SDF parser only adds one model at a time. Thus, the model ID is the
+  // current model ID minus one.
+  int model_id = sys.getRigidBodyTree()->get_current_model_id() - 1;
+
+  // Finds the model based on its name and parses the senors and actuators
+  // inside of it.
+  bool model_found = false;
+  for (XMLElement* model_node = node->FirstChildElement("model"); model_node;
+       model_node = model_node->NextSiblingElement("model")) {
+
+    if (!model_node->Attribute("name")) {
+      throw runtime_error(std::string(__FILE__) + ": " + __func__ +
+          ": ERROR: The model must have a name attribute.");
+    }
+    string current_model_name = model_node->Attribute("name");
+
+    if (current_model_name == model_name) {
+      parseSDFModel(sys, model_id, model_instance_name, model_node);
+      model_found = true;
     }
   }
 
-  // Computes the ID of the first model in the SDF. Since this SDF was just
-  // added to the RigidBodyTree, the model ID of the first model in the SDF
-  // is simply the final_model_id minus the number of models in the SDF that
-  // are not part of the world..
-  int model_id = final_model_id - number_of_models_in_sdf;
-
-  // Parses each model in the SDF. This includes parsing and instantiating
-  // simulated sensors as specified by the SDF description.
-  for (XMLElement* elnode = node->FirstChildElement("model"); elnode;
-       elnode = elnode->NextSiblingElement("model")) {
-    parseSDFModel(sys, model_id++, elnode);
+  if (!model_found) {
+    throw std::runtime_error("Unable to find model named \"" + model_name +
+        "\".");
   }
+
+  // // Parses each model in the SDF. This includes parsing and instantiating
+  // // simulated sensors as specified by the SDF description.
+  // for (XMLElement* elnode = node->FirstChildElement("model"); elnode;
+  //      elnode = elnode->NextSiblingElement("model")) {
+
+  //   parseSDFModel(sys, model_id++, elnode);
+  // }
 
   // Verifies that the model_id is equal to the final_model_id. They should
   // match since the number of models we just parsed is equal to:
@@ -874,14 +907,14 @@ void parseSDF(RigidBodySystem& sys, XMLDocument* xml_doc) {
   //              = final_model_id
   //
   // Hence, at this point in the code, model_id should equal final_model_id.
-  if (model_id != final_model_id) {
-    throw std::runtime_error(
-        "RigidBodySystem.cpp: parseSDF: ERROR: the final model ID (" +
-        std::to_string(model_id) +
-        ") is not equal to the expected final model "
-        "ID (" +
-        std::to_string(final_model_id) + ")");
-  }
+  // if (model_id != final_model_id) {
+  //   throw std::runtime_error(
+  //       "RigidBodySystem.cpp: parseSDF: ERROR: the final model ID (" +
+  //       std::to_string(model_id) +
+  //       ") is not equal to the expected final model "
+  //       "ID (" +
+  //       std::to_string(final_model_id) + ")");
+  // }
 }
 
 void RigidBodySystem::addRobotFromURDFString(
@@ -921,6 +954,44 @@ void RigidBodySystem::addRobotFromURDF(
         urdf_filename + "\n" + xml_doc.ErrorName());
   }
   parseURDF(*this, &xml_doc);
+  ++model_count_;
+}
+
+// TODO(liang.fok): This is a deprecated method. Remove it soon.
+void RigidBodySystem::addRobotFromSDF(
+    const string& sdf_filename,
+    const DrakeJoint::FloatingBaseType floating_base_type,
+    std::shared_ptr<RigidBodyFrame> weld_to_frame) {
+  XMLDocument xml_doc;
+  xml_doc.LoadFile(sdf_filename.data());
+  if (xml_doc.ErrorID() != XML_SUCCESS) {
+    throw std::runtime_error(
+        "RigidBodySystem::addRobotFromSDF: ERROR: Failed to parse xml in "
+        "file " + sdf_filename + "\n" + xml_doc.ErrorName());
+  }
+
+  XMLElement* node = xml_doc->FirstChildElement("sdf");
+
+  if (!node) {
+    throw std::runtime_error(
+        "ERROR: This xml file does not contain an sdf tag");
+  }
+
+  // Adds each model in the SDF to this RigidBodySystem one at a time.
+  // For the model instance name, use a generic name concatinated with an
+  // enumerated integer.
+  for (XMLElement* elnode = node->FirstChildElement("model"); elnode;
+       elnode = elnode->NextSiblingElement("model")) {
+    if (!node->Attribute("name")) {
+      throw runtime_error(std::string(__FILE__) + ": " + __func__ +
+          ": ERROR: The model must have a name attribute.");
+    }
+    string model_name = node->Attribute("name");
+    string model_instance_name = "MODEL_INSTANCE_" +
+        std::toString(model_count_ + 1);
+    addRobotFromSDF(sdf_filename, model_name, model_instance_name,
+        floating_base_type, weld_to_frame);
+  }
 }
 
 void RigidBodySystem::addRobotFromSDF(
@@ -944,7 +1015,10 @@ void RigidBodySystem::addRobotFromSDF(
         "file " +
         sdf_filename + "\n" + xml_doc.ErrorName());
   }
-  parseSDF(*this, &xml_doc);
+  parseSDF(*this, &xml_doc, model_name, model_instance_name);
+
+  // Updates the model count.
+  ++model_count_;
 }
 
 void RigidBodySystem::addRobotFromFile(

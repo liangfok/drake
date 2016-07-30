@@ -186,6 +186,32 @@ class DRAKERBSYSTEM_EXPORT RigidBodySystem {
    *
    * @param[in] sdf_filename The name of the SDF file containing the models to
    * add to this rigid body system.
+   * @param[in] floating_base_type The type of floating base to use to connect
+   * the models within the SDF file to the world.
+   * @param[in] weld_to_frame The frame used for connecting the models in the
+   * SDF to the rigid body tree within this rigid body system. Note that this
+   * specifies both the existing frame in the rigid body tree to connect the
+   * new models to and the offset from this frame to the new models' root
+   * bodies. This is an optional parameter. If it is `nullptr`, the models
+   * within the SDF are connected to the world with zero offset and rotation
+   * relative to the world's frame.
+   */
+#ifndef SWIG
+  DRAKE_DEPRECATED("Please use version with model_name and model_instance_name.");
+#endif
+  void addRobotFromSDF(const std::string& sdf_filename,
+                       const DrakeJoint::FloatingBaseType floating_base_type =
+                           DrakeJoint::QUATERNION,
+                       std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
+
+  /**
+   * Adds the models contained within an SDF file to this rigid body system.
+   * The models within a particular SDF file can be added multiple times. Each
+   * model is uniquely identified by a model ID that is assigned to the rigid
+   * bodies that belong to the model.
+   *
+   * @param[in] sdf_filename The name of the SDF file containing the models to
+   * add to this rigid body system.
    *
    * @param[in] model_name The name of the model within the SDF to add. Throws a
    * `std::runtime_error` if no such model exists.
@@ -300,6 +326,8 @@ class DRAKERBSYSTEM_EXPORT RigidBodySystem {
    */
   std::vector<const RigidBodySensor*> GetSensors() const;
 
+  int get_model_count() { return model_count_; }
+
   // some parameters defining the contact
   bool use_multi_contact;
   double penetration_stiffness;  // k
@@ -311,6 +339,9 @@ class DRAKERBSYSTEM_EXPORT RigidBodySystem {
   std::vector<std::shared_ptr<RigidBodyForceElement>> force_elements;
   std::vector<std::shared_ptr<RigidBodySensor>> sensors;
   bool direct_feedthrough;
+
+  // Keeps track of the number of models in this RigidBodySystem.
+  int model_count_{0};
 
   /*
   mutable OptimizationProblem dynamics_program;
