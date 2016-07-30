@@ -399,11 +399,14 @@ class DRAKERBSYSTEM_EXPORT RigidBodySpringDamper
     using namespace Eigen;
     const Vector3d origin = Vector3d::Zero();
     Vector3d xA_in_B = sys.getRigidBodyTree()->transformPoints(
-        rigid_body_state, origin, frameA->frame_index, frameB->frame_index);
+        rigid_body_state, origin, frameA->get_frame_index(),
+        frameB->get_frame_index());
     Vector3d xB_in_A = sys.getRigidBodyTree()->transformPoints(
-        rigid_body_state, origin, frameB->frame_index, frameA->frame_index);
+        rigid_body_state, origin, frameB->get_frame_index(),
+        frameA->get_frame_index());
     auto JA_in_B = sys.getRigidBodyTree()->transformPointsJacobian(
-        rigid_body_state, origin, frameA->frame_index, frameB->frame_index,
+        rigid_body_state, origin, frameA->get_frame_index(),
+        frameB->get_frame_index(),
         false);
 
     double length = xA_in_B.norm();
@@ -497,11 +500,13 @@ class DRAKERBSYSTEM_EXPORT RigidBodySensor {
                   std::shared_ptr<RigidBodyFrame> frame)
       : sys_(sys), frame_(frame) {
     model_element_id_.set_instance_name("UNDEFINED INSTANCE NAME");
-    model_element_id_.set_model_name(frame_->body->get_model_name());
+    model_element_id_.set_model_name(
+        frame_->get_rigid_body().get_model_name());
     model_element_id_.set_element_type(
         drake::systems::plants::ModelElementType::kSensorElement);
     model_element_id_.set_element_name(name);
-    model_element_id_.set_model_instance_id(frame_->body->get_model_id());
+    model_element_id_.set_model_instance_id(
+        frame_->get_rigid_body().get_model_id());
   }
 
   virtual ~RigidBodySensor() {}
