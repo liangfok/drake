@@ -464,7 +464,7 @@ void parseVisual(RigidBody* body, XMLElement* node, RigidBodyTree* tree,
     }
   }
 
-  if (element.hasGeometry()) body->addVisualElement(element);
+  if (element.hasGeometry()) body->AddVisualElement(element);
 }
 
 void parseCollision(RigidBody* body, XMLElement* node, RigidBodyTree* tree,
@@ -940,8 +940,8 @@ void parseWorldJoint(XMLElement* node,
       // a nullptr.
       if (weld_to_frame == nullptr) weld_to_frame.reset(new RigidBodyFrame());
 
-      weld_to_frame->name = string(RigidBodyTree::kWorldLinkName);
-      weld_to_frame->transform_to_body = transform_to_parent_body;
+      weld_to_frame->set_name(string(RigidBodyTree::kWorldLinkName));
+      weld_to_frame->set_transform_to_body(transform_to_parent_body);
 
       if (joint_type == "fixed") {
         floating_base_type = DrakeJoint::FloatingBaseType::FIXED;
