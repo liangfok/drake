@@ -20,7 +20,7 @@ namespace examples {
 namespace cars {
 
 std::shared_ptr<RigidBodySystem> CreateRigidBodySystem(
-    int argc, const char* argv[], double* duration,
+    int argc, const char* argv[],
     std::vector<std::unique_ptr<ModelInstance>>* models) {
   if (argc < 2) {
     std::cerr << "Usage: " << argv[0] << " vehicle_model [world sdf files ...]"
@@ -34,26 +34,19 @@ std::shared_ptr<RigidBodySystem> CreateRigidBodySystem(
   rigid_body_sys->addRobotFromFile(argv[1], DrakeJoint::QUATERNION, nullptr,
     models);
 
-  // Initializes duration to be infinity.
-  *duration = std::numeric_limits<double>::infinity();
-
   // Adds the environment to the rigid body tree.
-  const auto& tree = rigid_body_sys->getRigidBodyTree();
-  for (int i = 2; i < argc; i++) {
-    if (std::string(argv[i]) == "--duration") {
-      if (++i == argc) {
-        throw std::runtime_error(
-            "ERROR: Command line option \"--duration\" is not followed by a "
-            "value!");
-      }
-      *duration = atof(argv[i]);
+  for (int ii = 2; ii < argc; ++ii) {
+    if (std::string(argv[ii]) != "--duration") {
+      rigid_body_sys->addRobotFromFile(argv[ii], DrakeJoint::FIXED);
     } else {
-      rigid_body_sys->addRobotFromFile(argv[i], DrakeJoint::FIXED);
+      ++ii; // Skips the value immediately after "--duration".
     }
   }
 
   // If no environment is specified, the following code adds a flat terrain.
   if (argc < 3) {
+    const std::shared_ptr<RigidBodyTree>& tree =
+        rigid_body_sys->getRigidBodyTree();
     AddFlatTerrain(tree);
   }
 
