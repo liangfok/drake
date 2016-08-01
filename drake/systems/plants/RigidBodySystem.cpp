@@ -395,8 +395,25 @@ RigidBodySpringDamper::RigidBodySpringDamper(RigidBodySystem& sys,
   tree->addFrame(frameB);
 }
 
+RigidBodySensor::RigidBodySensor(const RigidBodySystem& sys,
+    const std::string& name, std::shared_ptr<RigidBodyFrame> frame):
+        sys_(sys), frame_(frame) {
+  id_.set_model_instance_name("UNDEFINED INSTANCE NAME");
+  id_.set_model_name(frame_->body->get_model_name());
+  id_.set_element_name(name);
+  id_.set_model_instance_id(frame_->body->get_model_id());
+}
+
+bool RigidBodySensor::isDirectFeedthrough() const { return false; }
+
+size_t RigidBodySensor::getNumOutputs() const { return 0; }
+
+const std::string& RigidBodySensor::get_name() const {
+  return id_.get_element_name();
+}
+
 const std::string& RigidBodySensor::get_model_name() const {
-  return model_element_id_.get_model_name();
+  return id_.get_model_name();
 }
 
 const RigidBodyFrame& RigidBodySensor::get_frame() const {
@@ -820,11 +837,12 @@ void parseSDFModel(RigidBodySystem& sys, int model_id,
 void parseSDF(RigidBodySystem& sys, XMLDocument* xml_doc,
     const std::string& model_name,
     const std::string& model_instance_name) {
-  XMLElement* node = xml_doc->FirstChildElement("sdf");
+  XMLElement* sdf_node = xml_doc->FirstChildElement("sdf");
 
-  if (!node) {
+  if (!sdf_node) {
     throw std::runtime_error(
-        "ERROR: This xml file does not contain an sdf tag");
+        std::string(__FILE__) + ": " + __func__ +
+        ": ERROR: File \"" + filename + "\" does not contain a sdf tag.");s
   }
 
   // // Obtains the final model ID after all models in the SDF are added to the
@@ -859,15 +877,16 @@ void parseSDF(RigidBodySystem& sys, XMLDocument* xml_doc,
   // // are not part of the world..
   // int model_id = final_model_id - number_of_models_in_sdf;
 
-  // The SDF parser only adds one model at a time. Thus, the model ID is the
+  // The SDF parser only adds one model to the RigidBodyTree at a time. Since
+  // the model was already added to the RigidBodyTree, the model ID is the
   // current model ID minus one.
   int model_id = sys.getRigidBodyTree()->get_current_model_id() - 1;
 
-  // Finds the model based on its name and parses the senors and actuators
+  // Finds the model based on its name and parses the sensors and actuators
   // inside of it.
   bool model_found = false;
-  for (XMLElement* model_node = node->FirstChildElement("model"); model_node;
-       model_node = model_node->NextSiblingElement("model")) {
+  for (XMLElement* model_node = sdf_node->FirstChildElement("model");
+       model_node; model_node = model_node->NextSiblingElement("model")) {
 
     if (!model_node->Attribute("name")) {
       throw runtime_error(std::string(__FILE__) + ": " + __func__ +

@@ -707,21 +707,21 @@ void parseModel(RigidBodyTree* rigid_body_tree, XMLElement* node,
                                     weld_to_frame, &pose_map);
 }
 
-void parseWorld(RigidBodyTree* model, XMLElement* node,
-                const PackageMap& package_map, const string& root_dir,
-                const DrakeJoint::FloatingBaseType floating_base_type,
-                std::shared_ptr<RigidBodyFrame> weld_to_frame) {
-  for (XMLElement* model_node = node->FirstChildElement("model"); model_node;
-       model_node = model_node->NextSiblingElement("model")) {
-    parseModel(model, model_node, package_map, root_dir, floating_base_type,
-               weld_to_frame);
-  }
-}
+// void parseWorld(RigidBodyTree* model, XMLElement* node,
+//                 const PackageMap& package_map, const string& root_dir,
+//                 const DrakeJoint::FloatingBaseType floating_base_type,
+//                 std::shared_ptr<RigidBodyFrame> weld_to_frame) {
+//   for (XMLElement* model_node = node->FirstChildElement("model"); model_node;
+//        model_node = model_node->NextSiblingElement("model")) {
+//     parseModel(model, model_node, package_map, root_dir, floating_base_type,
+//                weld_to_frame);
+//   }
+// }
 
 void parseSDF(RigidBodyTree* model, XMLDocument* xml_doc,
-              PackageMap& package_map, const string& root_dir,
               const DrakeJoint::FloatingBaseType floating_base_type,
               std::shared_ptr<RigidBodyFrame> weld_to_frame) {
+  PackageMap package_map;
   populatePackageMap(package_map);
 
   XMLElement* node = xml_doc->FirstChildElement("sdf");
@@ -729,6 +729,12 @@ void parseSDF(RigidBodyTree* model, XMLDocument* xml_doc,
     throw std::runtime_error(
         std::string(__FILE__) + ": " + __func__ +
         ": ERROR: The XML file does not contain an sdf tag.");
+  }
+
+  string root_dir = ".";
+  size_t found = filename.find_last_of("/\\");
+  if (found != string::npos) {
+    root_dir = filename.substr(0, found);
   }
 
   // Loads the world if it is defined.
@@ -757,25 +763,73 @@ void parseSDF(RigidBodyTree* model, XMLDocument* xml_doc,
 
 }  // namespace
 
-void AddRobotFromSDFInWorldFrame(
-    const string& filename,
-    const std::string& model_name,
+// void AddRobotFromSDFInWorldFrame(
+//     const string& filename,
+//     const DrakeJoint::FloatingBaseType floating_base_type,
+//     RigidBodyTree* tree) {
+//   AddRobotFromSDF(filename, model_name, floating_base_type,
+//       nullptr, tree);
+// }
+
+// void AddRobotFromSDF(
+//     const string& filename,
+//     const DrakeJoint::FloatingBaseType floating_base_type,
+//     std::shared_ptr<RigidBodyFrame> weld_to_frame,
+//     RigidBodyTree* tree) {
+
+//   // for each model in the RigidBodyTree...
+//   for (each model in the rigid body tree) {
+//     std::string model_name = get_model_name;
+//     std::string model_instance_name = get_model_instance_name;
+//     AddModelFromSDF(filename, model_name, model_instance_name,
+//       floating_base_type, weld_to_frame, tree);
+//   }
+// }
+
+bool FindAndAddModel(XMLElement* node, const std::string& model_name,
     const std::string& model_instance_name,
     const DrakeJoint::FloatingBaseType floating_base_type,
+    std::shared_ptr<RigidBodyFrame> weld_to_frame,
     RigidBodyTree* tree) {
-  AddRobotFromSDF(filename, model_name, model_instance_name, floating_base_type,
-      nullptr, tree);
+  // Defines a boolean variable for checking whether the model to be added was
+  // found.
+  bool model_found = false;
+
+  // Iterates through each model within the XML node.
+  for (XMLElement* model_node = sdf_node->FirstChildElement("model");
+       model_node && !model_found;
+       model_node = model_node->NextSiblingElement("model")) {
+
+    // Checks whether the current model has a name. Throws an exception if it
+    // does not.
+    if (!model_node->Attribute("name")) {
+      throw runtime_error(std::string(__FILE__) + ": " + __func__ +
+          ": ERROR: The model must have a name attribute.");
+    }
+
+    // Obtains the name of the current model.
+    string current_model_name = model_node->Attribute("name");
+
+    // Checks if the current model is the one we want to add. If it is, obtain
+    // a unique model ID and then add it to the RigidBodyTree.
+    if (current_model_name == model_name) {
+      int model_id = tree->get_next_model_id();
+      parseSDFModel(sys, model_id, model_instance_name, model_node);
+      model_found = true;
+    }
+  }
+
+  return model_found;
 }
 
-void AddRobotFromSDF(
+void AddModelFromSDF(
     const string& filename,
     const std::string& model_name,
     const std::string& model_instance_name,
     const DrakeJoint::FloatingBaseType floating_base_type,
     std::shared_ptr<RigidBodyFrame> weld_to_frame,
     RigidBodyTree* tree) {
-  PackageMap package_map;
-
+  // Loads the SDF file into an XML parser.
   XMLDocument xml_doc;
   xml_doc.LoadFile(filename.data());
   if (xml_doc.ErrorID()) {
@@ -784,14 +838,44 @@ void AddRobotFromSDF(
                              filename + "\n" + xml_doc.ErrorName() + ".");
   }
 
-  string root_dir = ".";
-  size_t found = filename.find_last_of("/\\");
-  if (found != string::npos) {
-    root_dir = filename.substr(0, found);
+  // Obtains the SDF child element. Throws an exception of such an element does
+  // not exist.
+  XMLElement* sdf_node = xml_doc->FirstChildElement("sdf");
+
+  if (!sdf_node) {
+    throw std::runtime_error(
+        std::string(__FILE__) + ": " + __func__ +
+        ": ERROR: File \"" + filename + "\" does not contain a sdf tag.");
   }
 
-  parseSDF(tree, &xml_doc, package_map, root_dir, floating_base_type,
-           weld_to_frame);
+  bool model_found = false;
+
+  // Checks if the model to be added is in the world.
+  XMLElement* world_node =
+      node->FirstChildElement(RigidBodyTree::kWorldLinkName);
+  if (world_node) {
+    // If we have more than one world, it is ambiguous which one the user
+    // wishes to use.
+    if (world_node->NextSiblingElement(RigidBodyTree::kWorldLinkName)) {
+      throw runtime_error(std::string(__FILE__) + ": " + __func__ +
+                          ": ERROR: Multiple worlds in one file.");
+    }
+
+    model_found = FindAndAddModel(world_node, model_name, model_instance_name,
+        floating_base_type, weld_to_frame, tree);
+  }
+
+  // Checks if the model to be added is in the SDF but not part of the world.
+  if (!model_found) {
+    model_found = FindAndAddModel(sdf_node, model_name, model_instance_name,
+        floating_base_type, weld_to_frame, tree);
+  }
+
+  // Throws an exception if the model is not found.
+  if (!model_found) {
+    throw std::runtime_error("Unable to find model named \"" + model_name +
+        "\".");
+  }
 }
 
 }  // namespace sdf
