@@ -62,6 +62,18 @@ int do_main(int argc, const char* argv[]) {
   // Initializes and cascades all of the other systems.
   auto vehicle_sys = CreateVehicleSystem(rigid_body_sys);
 
+  std::cout
+      << "==========================================================="
+      << std::endl
+      << "vehicle_sys:"
+      << std::endl
+      << "  - number of inputs: " << drake::getNumInputs(*vehicle_sys.get())
+      << std::endl
+      << "  - number of states: " << drake::getNumStates(*vehicle_sys.get())
+      << std::endl
+      << "  - number of outputs: " << drake::getNumOutputs(*vehicle_sys.get())
+      << std::endl;
+
   auto visualizer =
       std::make_shared<BotVisualizer<RigidBodySystem::StateVector>>(lcm, tree);
 
@@ -91,6 +103,18 @@ int do_main(int argc, const char* argv[]) {
             odometry_publisher),
           tf_publisher),
         joint_state_publisher);
+
+  std::cout
+      << "==========================================================="
+      << std::endl
+      << "sys:"
+      << std::endl
+      << "  - number of inputs: " << drake::getNumInputs(*sys.get())
+      << std::endl
+      << "  - number of states: " << drake::getNumStates(*sys.get())
+      // << std::endl
+      // << "  - number of outputs: " << drake::getNumOutputs(*sys.get())
+      << std::endl;
 
   // Initializes the simulation options.
   SimulationOptions options = GetCarSimulationDefaultOptions();
