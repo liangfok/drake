@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "drake/common/polynomial.h"
+#include "drake/drakeKukaIiwaArm_export.h"
 #include "drake/systems/trajectories/PiecewisePolynomial.h"
 #include "drake/systems/vector.h"
 
@@ -15,7 +16,7 @@ namespace kuka_iiwa_arm {
 
 /// This class converts an input trajectory (a sequence of via-points) into a
 /// PiecewisePolynomial.
-class PolynomialTrajectoryFitGenerator {
+class DRAKEKUKAIIWAARM_EXPORT PolynomialTrajectoryFitGenerator {
  public:
   /// Helper typedefs for the methods in this class.
   typedef PiecewisePolynomial<double> PPType;
