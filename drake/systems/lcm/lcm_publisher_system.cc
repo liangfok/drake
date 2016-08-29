@@ -1,5 +1,8 @@
 #include "drake/systems/lcm/lcm_publisher_system.h"
 
+#include <cstdint>
+#include <vector>
+
 #include "drake/systems/framework/system_input.h"
 
 namespace drake {
@@ -32,27 +35,17 @@ std::string LcmPublisherSystem::get_name() const {
   return "LcmPublisherSystem::" + channel_;
 }
 
-std::unique_ptr<ContextBase<double>> LcmPublisherSystem::CreateDefaultContext()
-    const {
-  std::unique_ptr<Context<double>> context(new Context<double>());
-  context->SetNumInputPorts(get_num_input_ports());
-  return std::unique_ptr<ContextBase<double>>(context.release());
-}
-
-std::unique_ptr<SystemOutput<double>> LcmPublisherSystem::AllocateOutput(
-    const ContextBase<double>& context) const {
-  std::unique_ptr<SystemOutput<double>> output(new LeafSystemOutput<double>);
-  return output;
-}
-
 void LcmPublisherSystem::DoPublish(const ContextBase<double>& context) const {
   // Obtains the input vector.
-  const VectorBase<double>* input_vector =
+  const VectorBase<double>* const input_vector =
       context.get_vector_input(kPortIndex);
 
-  // Translates the input vector into an LCM message and publishes it onto the
-  // specified LCM channel.
-  translator_.PublishVectorBaseToLCM(*input_vector, channel_, lcm_);
+  // Translates the input vector into LCM message bytes.
+  std::vector<uint8_t> lcm_message;
+  translator_.TranslateVectorBaseToLcm(*input_vector, &lcm_message);
+
+  // Publishes onto the specified LCM channel.
+  lcm_->publish(channel_, lcm_message.data(), lcm_message.size());
 }
 
 }  // namespace lcm
