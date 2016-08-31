@@ -14,8 +14,19 @@
 #include "drake/systems/plants/collision/DrakeCollision.h"
 #include "drake/systems/plants/joints/DrakeJoint.h"
 
+/**
+ * Models a single, non-articulated, rigid body. A RigidBody is typically used
+ * to represent a single atomic object in the world (i.e., an object that is not
+ * composed of smaller objects). Kinematic chains of RigidBody objects can be
+ * formed by connecting multiple RigidBody objects through mobilizer joints.
+ */
 class DRAKERBM_EXPORT RigidBody {
  public:
+  /**
+   * A constructor that initializes this RigidBody with zero spatial inertia,
+   * zero mass, a center of mass at this the origin of this RigidBody's frame,
+   * no collision element filter groups, and no filtered collision groups.
+   */
   RigidBody();
 
   /**
