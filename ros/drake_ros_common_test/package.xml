@@ -1,12 +1,11 @@
 <package format="2">
 
-  <name>drake_ros_common</name>
+  <name>drake_ros_common_test</name>
 
   <version>0.0.0</version>
 
   <description>
-    Contains software that is of general use to other packages that integrate
-    Drake with ROS.
+    A package for testing the code in package drake_ros_common.
   </description>
 
   <license>BSD</license>
@@ -19,6 +18,5 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>drake</build_depend>
-  <build_depend>roscpp</build_depend>
+  <build_depend>drake_ros_common</build_depend>
 </package>

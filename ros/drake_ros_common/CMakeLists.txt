@@ -27,16 +27,16 @@ install(DIRECTORY include/${PROJECT_NAME}/
         FILES_MATCHING PATTERN "*.h")
 
 # Add the unit tests.
-if (CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  include_directories(${CMAKE_INSTALL_PREFIX}/include)
-  add_rostest_gtest(
-      parameter_server_test
-      test/parameter_server_test.test
-      test/parameter_server_test.cc)
-  target_link_libraries(parameter_server_test
-      ${catkin_LIBRARIES}
-      ${${PROJECT_NAME}_LIBRARY})
-  set_target_properties(parameter_server_test
-      PROPERTIES EXCLUDE_FROM_ALL FALSE)
-endif()
+# if (CATKIN_ENABLE_TESTING)
+#   find_package(rostest REQUIRED)
+#   find_package(drake_ros_common REQUIRED)
+#   include_directories(${CMAKE_INSTALL_PREFIX}/include)
+#   add_rostest_gtest(
+#       parameter_server_test
+#       test/parameter_server_test.test
+#       test/parameter_server_test.cc)
+#   target_link_libraries(parameter_server_test
+#       ${catkin_LIBRARIES})
+#   set_target_properties(parameter_server_test
+#       PROPERTIES EXCLUDE_FROM_ALL FALSE)
+# endif()
