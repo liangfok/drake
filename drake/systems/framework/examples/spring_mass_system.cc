@@ -1,5 +1,7 @@
 #include "drake/systems/framework/examples/spring_mass_system.h"
 
+#include "drake/systems/framework/basic_vector.h"
+
 namespace drake {
 namespace systems {
 
@@ -9,7 +11,7 @@ constexpr int kStateSize = 3;  // position, velocity, power integral
 
 SpringMassStateVector::SpringMassStateVector(double initial_position,
                                              double initial_velocity)
-    : BasicStateAndOutputVector<double>(kStateSize) {
+    : BasicVector<double>(kStateSize) {
   set_position(initial_position);
   set_velocity(initial_velocity);
   set_conservative_work(0);
@@ -43,7 +45,10 @@ SpringMassSystem::SpringMassSystem(double spring_constant_N_per_m,
                                    double mass_kg, bool system_is_forced)
     : spring_constant_N_per_m_(spring_constant_N_per_m),
       mass_kg_(mass_kg),
-      system_is_forced_(system_is_forced) {}
+      system_is_forced_(system_is_forced) {
+  if (system_is_forced_)
+    DeclareInputPort(kVectorValued, 1, kContinuousSampling);
+}
 
 double SpringMassSystem::EvalSpringForce(const MyContext& context) const {
   const double k = spring_constant_N_per_m_, x = get_position(context),
@@ -75,23 +80,23 @@ double SpringMassSystem::EvalNonConservativePower(const MyContext&) const {
 }
 
 // Reserve a context with no input, and a SpringMassStateVector state.
-std::unique_ptr<ContextBase<double>>
+std::unique_ptr<Context<double>>
 SpringMassSystem::CreateDefaultContext() const {
-  std::unique_ptr<Context<double>> context(new Context<double>);
+  std::unique_ptr<LeafContext<double>> context(new LeafContext<double>);
   std::unique_ptr<SpringMassStateVector> state(new SpringMassStateVector(0, 0));
   context->get_mutable_state()->continuous_state.reset(
       new ContinuousState<double>(std::move(state), 1 /* size of q */,
                                   1 /* size of v */, 1 /* size of z */));
-  if (system_is_forced_) context->SetNumInputPorts(1);
-  return std::unique_ptr<ContextBase<double>>(context.release());
+  context->SetNumInputPorts(this->get_num_input_ports());
+  return std::unique_ptr<Context<double>>(context.release());
 }
 
 std::unique_ptr<SystemOutput<double>> SpringMassSystem::AllocateOutput(
-    const ContextBase<double>& context) const {
+    const Context<double>& context) const {
   std::unique_ptr<LeafSystemOutput<double>> output(
       new LeafSystemOutput<double>);
   {
-    std::unique_ptr<VectorBase<double>> data(new SpringMassStateVector());
+    std::unique_ptr<BasicVector<double>> data(new SpringMassStateVector());
     std::unique_ptr<OutputPort> port(new OutputPort(std::move(data)));
     output->get_mutable_ports()->push_back(std::move(port));
   }
@@ -108,7 +113,7 @@ SpringMassSystem::AllocateTimeDerivatives() const {
 }
 
 // Assign the state to the output.
-void SpringMassSystem::EvalOutput(const ContextBase<double>& context,
+void SpringMassSystem::EvalOutput(const Context<double>& context,
                                   SystemOutput<double>* output) const {
   // TODO(david-german-tri): Cache the output of this function.
   const SpringMassStateVector& state = get_state(context);
@@ -119,8 +124,10 @@ void SpringMassSystem::EvalOutput(const ContextBase<double>& context,
 
 // Compute the actual physics.
 void SpringMassSystem::EvalTimeDerivatives(
-    const ContextBase<double>& context,
+    const Context<double>& context,
     ContinuousState<double>* derivatives) const {
+  DRAKE_ASSERT_VOID(CheckValidContext(context));
+
   // TODO(david-german-tri): Cache the output of this function.
   const SpringMassStateVector& state = get_state(context);
 

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "drake/common/drake_assert.h"
+#include "drake/common/drake_throw.h"
 #include "drake/systems/framework/diagram.h"
 #include "drake/systems/framework/system.h"
 #include "drake/systems/framework/system_port_descriptor.h"
@@ -24,8 +25,8 @@ class DiagramBuilder {
   /// Declares that input port @p dest is connected to output port @p src.
   void Connect(const SystemPortDescriptor<T>& src,
                const SystemPortDescriptor<T>& dest) {
-    DRAKE_ABORT_UNLESS(src.get_face() == kOutputPort);
-    DRAKE_ABORT_UNLESS(dest.get_face() == kInputPort);
+    DRAKE_DEMAND(src.get_face() == kOutputPort);
+    DRAKE_DEMAND(dest.get_face() == kInputPort);
     PortIdentifier dest_id{dest.get_system(), dest.get_index()};
     PortIdentifier src_id{src.get_system(), src.get_index()};
     ThrowIfInputAlreadyWired(dest_id);
@@ -34,10 +35,30 @@ class DiagramBuilder {
     dependency_graph_[dest_id] = src_id;
   }
 
+  /// Declares that sole input port on the @p dest system is connected to sole
+  /// output port on the @p src system.  Throws an exception if the sole-port
+  /// precondition is not met (i.e., if @p dest has no input ports, or @p dest
+  /// has more than one input port, or @p src has no output ports, or @p src
+  /// has more than one output port).
+  void Connect(const System<T>& src, const System<T>& dest) {
+    DRAKE_THROW_UNLESS(src.get_num_output_ports() == 1);
+    DRAKE_THROW_UNLESS(dest.get_num_input_ports() == 1);
+    Connect(src.get_output_port(0), dest.get_input_port(0));
+  }
+
+  /// Cascades @p src and @p dest.  The sole input port on the @p dest system
+  /// is connected to sole output port on the @p src system.  Throws an
+  /// exception if the sole-port precondition is not met (i.e., if @p dest has
+  /// no input ports, or @p dest has more than one input port, or @p src has no
+  /// output ports, or @p src has more than one output port).
+  void Cascade(const System<T>& src, const System<T>& dest) {
+    Connect(src, dest);
+  }
+
   /// Declares that the given @p input port of a constituent system is an input
   /// to the entire Diagram.
   void ExportInput(const SystemPortDescriptor<T>& input) {
-    DRAKE_ABORT_UNLESS(input.get_face() == kInputPort);
+    DRAKE_DEMAND(input.get_face() == kInputPort);
     PortIdentifier id{input.get_system(), input.get_index()};
     ThrowIfInputAlreadyWired(id);
     Register(input.get_system());
@@ -48,7 +69,7 @@ class DiagramBuilder {
   /// Declares that the given @p output port of a constituent system is an
   /// output of the entire diagram.
   void ExportOutput(const SystemPortDescriptor<T>& output) {
-    DRAKE_ABORT_UNLESS(output.get_face() == kOutputPort);
+    DRAKE_DEMAND(output.get_face() == kOutputPort);
     Register(output.get_system());
     output_port_ids_.push_back(
         PortIdentifier{output.get_system(), output.get_index()});
@@ -57,12 +78,18 @@ class DiagramBuilder {
   /// Builds the Diagram that has been described by the calls to Connect,
   /// ExportInput, and ExportOutput. Throws std::logic_error if the graph is
   /// not buildable.
-  std::unique_ptr<Diagram<T>> Build() {
-    if (registered_systems_.size() == 0) {
-      throw std::logic_error("Cannot Build with an empty DiagramBuilder.");
-    }
-    return std::make_unique<Diagram<T>>(dependency_graph_, SortSystems(),
-                                        input_port_ids_, output_port_ids_);
+  std::unique_ptr<Diagram<T>> Build() const {
+    return std::unique_ptr<Diagram<T>>(new Diagram<T>(Compile()));
+  }
+
+  /// Configures @p target to have the topology that has been described by
+  /// the calls to Connect, ExportInput, and ExportOutput. Throws
+  /// std::logic_error if the graph is not buildable.
+  ///
+  /// Only Diagram subclasses should call this method. The target must not
+  /// already be initialized.
+  void BuildInto(Diagram<T>* target) const {
+    target->Initialize(Compile());
   }
 
  private:
@@ -106,20 +133,22 @@ class DiagramBuilder {
     for (const auto& connection : dependency_graph_) {
       const System<T>* src = connection.second.first;
       const System<T>* dest = connection.first.first;
-      dependents[src].insert(dest);
-      dependencies[dest].insert(src);
-    }
-
-    // Find the systems that have no inputs within the DiagramBuilder.
-    std::vector<const System<T>*> nodes_with_in_degree_zero;
-    for (const System<T>* system : registered_systems_) {
-      // For the purposes of execution order, a system with no direct
-      // feed-through from input to output is as if it has no inputs.
+      // If a system is not direct-feedthrough, the connections to its inputs
+      // are not relevant for detecting algebraic loops or determining
+      // execution order.
       //
       // TODO(david-german-tri): Make direct-feedthrough resolution more
       // fine-grained once #3170 is resolved.
-      if (dependencies.find(system) == dependencies.end() ||
-          !system->has_any_direct_feedthrough()) {
+      if (dest->has_any_direct_feedthrough()) {
+        dependents[src].insert(dest);
+        dependencies[dest].insert(src);
+      }
+    }
+
+    // Find the systems that have no direct-feedthrough inputs.
+    std::vector<const System<T>*> nodes_with_in_degree_zero;
+    for (const System<T>* system : registered_systems_) {
+      if (dependencies.find(system) == dependencies.end()) {
         nodes_with_in_degree_zero.push_back(system);
       }
     }
@@ -144,6 +173,17 @@ class DiagramBuilder {
       throw std::logic_error("Algebraic loop detected in DiagramBuilder.");
     }
     return sorted_systems;
+  }
+
+  /// Produces the Blueprint that has been described by the calls to
+  /// Connect, ExportInput, and ExportOutput. Throws std::logic_error if the
+  /// graph is not buildable.
+  typename Diagram<T>::Blueprint Compile() const {
+    if (registered_systems_.size() == 0) {
+      throw std::logic_error("Cannot Compile an empty DiagramBuilder.");
+    }
+    return typename Diagram<T>::Blueprint{
+        input_port_ids_, output_port_ids_, dependency_graph_, SortSystems()};
   }
 
   // DiagramBuilder objects are neither copyable nor moveable.

@@ -17,6 +17,8 @@ BotVisualizerSystem::BotVisualizerSystem(
     ::lcm::LCM* lcm,
     std::string channel_postfix)
     : tree_(tree), lcm_(lcm), channel_postfix_(channel_postfix) {
+  DeclareInputPort(kVectorValued, translator_.get_vector_size(),
+                   kContinuousSampling);
   initialize_drake_visualizer();
   initialize_draw_message();
 }
@@ -27,25 +29,9 @@ std::string BotVisualizerSystem::get_name() const {
   return "BotVisualizerSystem";
 }
 
-std::unique_ptr<ContextBase<double>> BotVisualizerSystem::CreateDefaultContext()
-    const {
-  std::unique_ptr<Context<double>> context(new Context<double>());
-  context->SetNumInputPorts(kNumInputPorts);
-  return std::unique_ptr<ContextBase<double>>(context.release());
-}
+void LcmPublisherSystem::DoPublish(const Context<double>& context) const {
+  SPDLOG_TRACE(drake::log(), "Publishing LCM {} message", channel_);
 
-std::unique_ptr<SystemOutput<double>> BotVisualizerSystem::AllocateOutput(
-    const ContextBase<double>& context) const {
-  std::unique_ptr<SystemOutput<double>> output(new LeafSystemOutput<double>);
-  return output;
-}
-
-// TODO(liang.fok) Move the contents of this method into another method that's
-// dedicated to publishing middleware messages once it is defined by System. For
-// more information, see:
-//     https://github.com/RobotLocomotion/drake/issues/2836.
-void BotVisualizerSystem::EvalOutput(const ContextBase<double>& context,
-                                    SystemOutput<double>* output) const {
   // Obtains the input vector.
   const VectorBase<double>* input_vector = context.get_vector_input(kPortIndex);
 
@@ -71,6 +57,9 @@ void BotVisualizerSystem::EvalOutput(const ContextBase<double>& context,
 
   lcm_->publish("DRAKE_VIEWER_DRAW" + channel_postfix_, &draw_msg_);
 }
+
+void BotVisualizerSystem::EvalOutput(const Context<double>& context,
+                                    SystemOutput<double>* output) const {}
 
 void BotVisualizerSystem::initialize_drake_visualizer() {
   drake::lcmt_viewer_load_robot message;
