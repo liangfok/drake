@@ -61,12 +61,7 @@ class DRAKEBOTVISUALIZERSYSTEM_EXPORT BotVisualizerSystem :
 
   std::string get_name() const override;
 
-  /**
-   * Takes the VectorBase from the input port of the context and publishes
-   * it onto an LCM channel.
-   */
-  void DoPublish(const Context<double>& context) const override;
-
+ private:
   /**
    * Takes the VectorInterface from the input port of the context, computes the
    * pose of each rigid body in the RigidBodyTree that was provided as an input
@@ -76,7 +71,12 @@ class DRAKEBOTVISUALIZERSYSTEM_EXPORT BotVisualizerSystem :
   void EvalOutput(const Context<double>& context,
                   SystemOutput<double>* output) const override;
 
- private:
+  /**
+   * Takes the VectorBase from the input port of the context and publishes
+   * it onto an LCM channel.
+   */
+  void DoPublish(const Context<double>& context) const override;
+
   // Sends the drake::lcmt_viewer_load_robot messages to the Drake Visualizer
   // informing it of what needs to be visualized. This is called once by the
   // constructor.
@@ -94,7 +94,7 @@ class DRAKEBOTVISUALIZERSYSTEM_EXPORT BotVisualizerSystem :
 
   // The LCM draw message to send to the Drake Visualizer. This member variable
   // is declared mutable so it can be modified by EvalOutput().
-  mutable drake::lcmt_viewer_draw draw_msg_;
+  drake::lcmt_viewer_draw draw_msg_;
 
   // The postfix of the channel names.
   std::string channel_postfix_;

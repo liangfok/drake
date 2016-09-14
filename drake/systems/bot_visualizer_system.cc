@@ -8,7 +8,6 @@ namespace drake {
 namespace systems {
 
 namespace {
-const int kNumInputPorts = 1;
 const int kPortIndex = 0;
 }  // namespace
 
@@ -17,8 +16,8 @@ BotVisualizerSystem::BotVisualizerSystem(
     ::lcm::LCM* lcm,
     std::string channel_postfix)
     : tree_(tree), lcm_(lcm), channel_postfix_(channel_postfix) {
-  DeclareInputPort(kVectorValued, translator_.get_vector_size(),
-                   kContinuousSampling);
+  int vector_size = tree.number_of_positions() + tree.number_of_velocities();
+  DeclareInputPort(kVectorValued, vector_size, kContinuousSampling);
   initialize_drake_visualizer();
   initialize_draw_message();
 }
@@ -29,13 +28,15 @@ std::string BotVisualizerSystem::get_name() const {
   return "BotVisualizerSystem";
 }
 
-void LcmPublisherSystem::DoPublish(const Context<double>& context) const {
-  SPDLOG_TRACE(drake::log(), "Publishing LCM {} message", channel_);
-
+void BotVisualizerSystem::DoPublish(const ContextBase<double>& context) const {
   // Obtains the input vector.
   const VectorBase<double>* input_vector = context.get_vector_input(kPortIndex);
 
-  draw_msg_.timestamp = static_cast<int64_t>(context.get_time() * 1000.0);
+  // Create a copy of the partially-initialized draw message.
+  // This is necessary since this method is declared const.
+  drake::lcmt_viewer_draw draw_msg = draw_msg_;
+
+  draw_msg.timestamp = static_cast<int64_t>(context.get_time() * 1000.0);
 
   const Eigen::VectorXd q = input_vector->get_value().head(
       tree_.number_of_positions());
@@ -44,18 +45,18 @@ void LcmPublisherSystem::DoPublish(const Context<double>& context) const {
   for (size_t i = 0; i < tree_.bodies.size(); ++i) {
     auto transform = tree_.relativeTransform(cache, 0, i);
     auto quat = drake::math::rotmat2quat(transform.linear());
-    std::vector<float>& position = draw_msg_.position[i];
+    std::vector<float>& position = draw_msg.position[i];
     auto translation = transform.translation();
     for (int j = 0; j < 3; ++j) {
       position[j] = static_cast<float>(translation(j));
     }
-    std::vector<float>& quaternion = draw_msg_.quaternion[i];
+    std::vector<float>& quaternion = draw_msg.quaternion[i];
     for (int j = 0; j < 4; ++j) {
       quaternion[j] = static_cast<float>(quat(j));
     }
   }
 
-  lcm_->publish("DRAKE_VIEWER_DRAW" + channel_postfix_, &draw_msg_);
+  lcm_->publish("DRAKE_VIEWER_DRAW" + channel_postfix_, &draw_msg);
 }
 
 void BotVisualizerSystem::EvalOutput(const Context<double>& context,
