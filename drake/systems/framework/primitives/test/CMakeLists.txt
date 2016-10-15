@@ -1,6 +1,9 @@
 drake_add_cc_test(adder_test)
 target_link_libraries(adder_test drakeSystemFramework)
 
+drake_add_cc_test(affine_system_test)
+target_link_libraries(affine_system_test drakeSystemFramework)
+
 drake_add_cc_test(pass_through_test)
 target_link_libraries(pass_through_test drakeSystemFramework)
 

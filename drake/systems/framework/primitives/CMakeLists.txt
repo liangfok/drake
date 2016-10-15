@@ -3,6 +3,8 @@
 
 drake_install_headers(
   adder.h
+  affine_system.h
+  affine_system-inl.h
   constant_value_source.h
   constant_value_source-inl.h
   constant_vector_source.h

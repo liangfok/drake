@@ -14,6 +14,7 @@ set(sources
   input_port_evaluator_interface.cc
   output_port_listener_interface.cc
   primitives/adder.cc
+  primitives/affine_system.cc
   primitives/constant_value_source.cc
   primitives/constant_vector_source.cc
   primitives/demultiplexer.cc
