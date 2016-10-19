@@ -20,6 +20,7 @@
  * @retval lower_bound          The lower bound of the constraint at time t
  * @retval upper_bound          The upper bound of the constraint at time t
  * */
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   if ((nrhs != 3 && nrhs != 2) || nlhs != 7) {
     mexErrMsgIdAndTxt("Drake:testSingleTimeKinCnstmex:BadInputs",
@@ -48,7 +49,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   int type = cnst->getType();
   int num_cnst = cnst->getNumConstraint(t_ptr);
   // mexPrintf("num_cnst = %d\n", num_cnst);
-  int nq = cnst->getRobotPointer()->number_of_positions();
+  int nq = cnst->getRobotPointer()->get_num_positions();
   Eigen::Map<Eigen::VectorXd> q(mxGetPrSafe(prhs[1]), nq);
   KinematicsCache<double> cache = cnst->getRobotPointer()->doKinematics(q);
   Eigen::VectorXd c(num_cnst);

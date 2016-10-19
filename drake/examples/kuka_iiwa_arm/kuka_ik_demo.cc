@@ -154,7 +154,7 @@ class TrajectoryRunner {
   lcmt_iiwa_status iiwa_status_;
 };
 
-int do_main(int argc, const char* argv[]) {
+int main(int argc, const char* argv[]) {
   std::shared_ptr<lcm::LCM> lcm = std::make_shared<lcm::LCM>();
 
   RigidBodyTree tree(
@@ -210,7 +210,7 @@ int do_main(int argc, const char* argv[]) {
 
   const int kNumTimesteps = 5;
   double t[kNumTimesteps] = { 0.0, 2.0, 5.0, 7.0, 9.0 };
-  MatrixXd q0(tree.number_of_positions(), kNumTimesteps);
+  MatrixXd q0(tree.get_num_positions(), kNumTimesteps);
   for (int i = 0; i < kNumTimesteps; i++) {
     q0.col(i) = zero_conf;
   }
@@ -223,14 +223,14 @@ int do_main(int argc, const char* argv[]) {
   constraint_array.push_back(&wpc2);
   IKoptions ikoptions(&tree);
   int info[kNumTimesteps];
-  MatrixXd q_sol(tree.number_of_positions(), kNumTimesteps);
+  MatrixXd q_sol(tree.get_num_positions(), kNumTimesteps);
   std::vector<std::string> infeasible_constraint;
 
   inverseKinPointwise(&tree, kNumTimesteps, t, q0, q0, constraint_array.size(),
                       constraint_array.data(), ikoptions, &q_sol, info,
                       &infeasible_constraint);
   bool info_good = true;
-  for (int i = 0; i < kNumTimesteps; i++) {
+  for (int i = 0; i < kNumTimesteps; ++i) {
     printf("INFO[%d] = %d ", i, info[i]);
     if (info[i] != 1) {
       info_good = false;
@@ -256,5 +256,5 @@ int do_main(int argc, const char* argv[]) {
 
 
 int main(int argc, const char* argv[]) {
-  return drake::examples::kuka_iiwa_arm::do_main(argc, argv);
+  return drake::examples::kuka_iiwa_arm::main(argc, argv);
 }

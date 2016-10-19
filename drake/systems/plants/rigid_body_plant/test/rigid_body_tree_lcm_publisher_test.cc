@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "drake/common/drake_path.h"
+#include "drake/lcm/drake_mock_lcm.h"
 #include "drake/math/roll_pitch_yaw.h"
 #include "drake/systems/plants/joints/RollPitchYawFloatingJoint.h"
 #include "drake/systems/plants/shapes/Geometry.h"
@@ -272,8 +273,8 @@ void VerifyDrawMessage(const std::vector<uint8_t>& message_bytes) {
   }
 
   // Ensures both messages have the same length.
-  EXPECT_EQ(expected_message.getEncodedSize(), message_bytes.size());
   int byte_count = expected_message.getEncodedSize();
+  EXPECT_EQ(byte_count, static_cast<int>(message_bytes.size()));
 
   // Serializes the expected message.
   std::vector<uint8_t> expected_message_bytes(byte_count);
@@ -459,7 +460,7 @@ unique_ptr<RigidBodyTree> CreateRigidBodyTree() {
 // Tests the basic functionality of the RigidBodyTreeLcmPublisher.
 GTEST_TEST(RigidBodyTreeLcmPublisherTests, BasicTest) {
   unique_ptr<RigidBodyTree> tree = CreateRigidBodyTree();
-  ::lcm::LCM lcm;
+  drake::lcm::DrakeMockLcm lcm;
   RigidBodyTreeLcmPublisher dut(*tree, &lcm);
 
   EXPECT_EQ("rigid_body_tree_visualizer_lcm", dut.get_name());
@@ -476,7 +477,7 @@ GTEST_TEST(RigidBodyTreeLcmPublisherTests, BasicTest) {
   EXPECT_EQ(1, context->get_num_input_ports());
 
   // Initializes the system's input vector to contain all zeros.
-  int vector_size = tree->number_of_positions() + tree->number_of_velocities();
+  int vector_size = tree->get_num_positions() + tree->get_num_velocities();
   auto input_data = make_unique<BasicVector<double>>(vector_size);
   input_data->set_value(Eigen::VectorXd::Zero(vector_size));
 
@@ -487,6 +488,8 @@ GTEST_TEST(RigidBodyTreeLcmPublisherTests, BasicTest) {
   dut.Publish(*context.get());
 
   // Verifies that the correct messages were actually transmitted.
+  // TODO(liang.fok) Update the following tests to obtain the last published
+  // message from the mock LCM object.
   VerifyLoadMessage(dut.get_load_message());
   VerifyDrawMessage(dut.get_draw_message_bytes());
 }

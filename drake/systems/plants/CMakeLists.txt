@@ -20,11 +20,11 @@ add_library_with_exports(LIB_NAME drakeRBM SOURCE_FILES
   RigidBody.cpp
   RigidBodyTreeContact.cpp
   rigid_body_actuator.cc
-  rigid_body_collision_element.cc
   rigid_body_frame.cc
-  rigid_body_loop.cc)
+  rigid_body_loop.cc
+  $<TARGET_OBJECTS:drakeUtil>)
 target_link_libraries(drakeRBM
-        drakeCollision drakeCommon drakeJoints drakeUtil drakeXMLUtil)
+        drakeCollision drakeCommon drakeJoints drakeXMLUtil)
 pods_install_libraries(drakeRBM)
 drake_install_headers(
   ConstraintWrappers.h
@@ -34,7 +34,6 @@ drake_install_headers(
   material_map.h
   pose_map.h
   rigid_body_actuator.h
-  rigid_body_collision_element.h
   RigidBodyFrame.h
   RigidBody.h
   RigidBodyTree.h
@@ -46,29 +45,26 @@ drake_install_headers(
   robot_state_tap.h)
 
 pods_install_pkg_config_file(drake-rbm
-  LIBS -ldrakeRBM -ldrakeCollision -ldrakeJoints -ldrakeUtil -ldrakeXMLUtil
+  LIBS -ldrakeRBM -ldrakeCollision -ldrakeJoints -ldrakeXMLUtil
   REQUIRES
   VERSION 0.0.1)
 
 pods_find_pkg_config(gurobi)
-pods_find_pkg_config(snopt_c)
+
 add_subdirectory(shapes)
 add_subdirectory(collision)
 add_subdirectory(constraint)
 add_subdirectory(joints)
 
-if(MATLAB_FOUND)
-  add_mex(rbmMexFunctions SHARED rigidBodyTreeMexFunctions.cpp)
+if(Matlab_FOUND)
+  drake_add_mex(rbmMexFunctions rigidBodyTreeMexFunctions.cpp)
   pods_install_libraries(rbmMexFunctions)
   target_link_libraries(rbmMexFunctions drakeRBM drakeMexUtil)
   # These warnings are not worth fixing.
   target_compile_options(rbmMexFunctions PRIVATE ${CXX_FLAGS_NO_SIGN_COMPARE})
 
   macro(add_rbm_mex)
-    # TODO: use this again once I can assume everyone has CMAKE version >= 2.8.8
-    # add_mex(${ARGV} ${ARGV}.cpp $<TARGET_OBJECTS:drakeUtil>)
-    # target_link_libraries(${ARGV} drakeRBM)
-    add_mex(${ARGV} ${ARGV}.cpp)
+    drake_add_mex(${ARGV} ${ARGV}.cpp)
     target_link_libraries(${ARGV} rbmMexFunctions)
     # These warnings are not worth fixing.
     target_compile_options(${ARGV} PRIVATE ${CXX_FLAGS_NO_SIGN_COMPARE})
@@ -110,8 +106,8 @@ if(MATLAB_FOUND)
   target_link_libraries(computeS1Trajmex drakeZMPUtil)
 
   if(gurobi_FOUND)
-    add_definitions(-DPATHLCP_MEXFILE=\"${PROJECT_SOURCE_DIR}/thirdParty/misc/pathlcp/lcppath.${MEX_EXT}\")
-    add_mex(solveLCPmex solveLCPmex.cpp)
+    drake_add_mex(solveLCPmex solveLCPmex.cpp)
+    target_compile_definitions(solveLCPmex PRIVATE "PATHLCP_MEXFILE=\"${PROJECT_SOURCE_DIR}/thirdParty/misc/pathlcp/lcppath.${Matlab_MEX_EXTENSION}\"")
     target_link_libraries(solveLCPmex drakeRBM drakeMexUtil drakeQP)
   endif()
 endif()
@@ -119,9 +115,9 @@ endif()
 add_library_with_exports(LIB_NAME drakeIKoptions SOURCE_FILES IKoptions.cpp)
 target_link_libraries(drakeIKoptions drakeRBM)
 
-if(MATLAB_FOUND)
+if(Matlab_FOUND)
   macro(add_ikoptions_mex)
-    add_mex(${ARGV} ${ARGV}.cpp)
+    drake_add_mex(${ARGV} ${ARGV}.cpp)
     target_link_libraries(${ARGV} drakeRBM drakeMexUtil drakeIKoptions)
     # These warnings are not worth fixing.
     target_compile_options(${ARGV} PRIVATE ${CXX_FLAGS_NO_SIGN_COMPARE})
@@ -129,8 +125,8 @@ if(MATLAB_FOUND)
   add_ikoptions_mex(IKoptionsmex)
 
   macro(add_constraint_mex)
-    add_mex(${ARGV} ${ARGV}.cpp)
-    target_link_libraries(${ARGV} drakeRBM drakeUtil drakeRigidBodyConstraint)
+    drake_add_mex(${ARGV} ${ARGV}.cpp)
+    target_link_libraries(${ARGV} drakeRBM drakeRigidBodyConstraint)
   endmacro()
 endif()
 
@@ -159,19 +155,21 @@ if(drakeIK_SRC_FILES)
     VERSION 0.0.1)
 endif()
 
-if(MATLAB_FOUND)
+if(Matlab_FOUND)
   if(gurobi_FOUND)
-    add_mex(approximateIKmex approximateIKmex.cpp)
+    drake_add_mex(approximateIKmex approximateIKmex.cpp)
     target_link_libraries(approximateIKmex drakeIK drakeRBM drakeMexUtil drakeRigidBodyConstraint)
     pods_use_pkg_config_packages(approximateIKmex gurobi)
   endif()
 
   macro(add_ik_mex)
-    add_mex(${ARGV} ${ARGV}.cpp)
+    drake_add_mex(${ARGV} ${ARGV}.cpp)
     target_link_libraries(${ARGV} drakeIK drakeRBM drakeMexUtil drakeRigidBodyConstraint)
     # These warnings are not worth fixing.
     target_compile_options(${ARGV} PRIVATE ${CXX_FLAGS_NO_SIGN_COMPARE})
   endmacro()
+
+  find_package(snopt_c)
 
   if(snopt_c_FOUND)
     add_ik_mex(inverseKinmex)
@@ -192,10 +190,13 @@ pods_install_pkg_config_file(drake-rbsystem
 
 if(lcm_FOUND)
   add_executable(rigidBodyLCMNode rigidBodyLCMNode.cpp)
-  target_link_libraries(rigidBodyLCMNode gflags drakeRBSystem drakeLCMSystem threads)
+  target_link_libraries(rigidBodyLCMNode gflags drakeRBSystem drakeLCMSystem Threads::Threads)
   pods_install_executables(rigidBodyLCMNode)
   drake_install_headers(BotVisualizer.h)
 endif()
 
 add_subdirectory(rigid_body_plant)
 add_subdirectory(test)
+
+#System2.0 Plants
+add_subdirectory(spring_mass_system)

@@ -10,8 +10,11 @@
 #include "drake/common/eigen_types.h"
 #include "drake/util/drakeGeometryUtil.h"
 
-using namespace std;
-using namespace Eigen;
+using Eigen::VectorXd;
+using std::cerr;
+using std::default_random_engine;
+using std::endl;
+using std::runtime_error;
 
 struct CheckSettings {
   bool expect_error_on_configuration_methods;
@@ -148,7 +151,7 @@ int main() {
 
   default_random_engine generator;
   VectorXd q = model->getRandomConfiguration(generator);
-  VectorXd v = VectorXd::Random(model->number_of_velocities());
+  VectorXd v = VectorXd::Random(model->get_num_velocities());
 
   // check before calling doKinematics
   {

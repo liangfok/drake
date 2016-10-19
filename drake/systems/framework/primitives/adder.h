@@ -13,11 +13,12 @@ namespace drake {
 namespace systems {
 
 /// An adder for arbitrarily many inputs of equal size.
-/// @ingroup systems
+/// @ingroup primitive_systems
 /// @tparam T The type of mathematical object being added.
 ///
 /// Instantiated templates for the following kinds of T's are provided:
 /// - double
+/// - AutoDiffXd
 ///
 /// They are already available to link against in libdrakeSystemFramework.
 /// No other values for T are currently supported.
@@ -30,6 +31,9 @@ class Adder : public LeafSystem<T> {
 
   /// All inputs to this system are directly fed through to its output.
   bool has_any_direct_feedthrough() const override { return true; }
+
+  /// Returns the output port.
+  const SystemPortDescriptor<T>& get_output_port() const;
 
   /// Sums the input ports into the output port. If the input ports are not
   /// the appropriate count or size, std::runtime_error will be thrown.

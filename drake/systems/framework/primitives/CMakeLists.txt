@@ -10,8 +10,10 @@ drake_install_headers(
   gain.h
   gain-inl.h
   integrator.h
+  multiplexer.h
   pass_through.h
   pass_through-inl.h
-  pid_controller.h)
+  time_varying_polynomial_source.h
+  zero_order_hold.h)
 
 add_subdirectory(test)

@@ -11,7 +11,7 @@
 #include <string>
 
 #include "drake/common/drake_assert.h"
-#include "drake/drakeSystemFramework_export.h"
+#include "drake/common/drake_export.h"
 #include "drake/systems/framework/basic_vector.h"
 #include "drake/systems/framework/leaf_context.h"
 
@@ -29,6 +29,16 @@ Gain<T>::Gain(const T& k, int size) : gain_(k) {
 template <typename T>
 const T& Gain<T>::get_gain() const {
   return gain_;
+}
+
+template <typename T>
+const SystemPortDescriptor<T>& Gain<T>::get_input_port() const {
+  return System<T>::get_input_port(0);
+}
+
+template <typename T>
+const SystemPortDescriptor<T>& Gain<T>::get_output_port() const {
+  return System<T>::get_output_port(0);
 }
 
 template <typename T>

@@ -1,6 +1,7 @@
 #include <gflags/gflags.h>
 
 #include "drake/common/drake_path.h"
+#include "drake/common/text_logging_gflags.h"
 #include "drake/examples/kuka_iiwa_arm/iiwa_simulation.h"
 #include "drake/systems/LCMSystem.h"
 #include "drake/systems/LinearSystem.h"
@@ -29,13 +30,14 @@ DEFINE_double(magnitude, 1.75, "Joint 5 Input torque magnitude");
 // run_kuka_iiwa_gravity_compensated_position_control into a class
 // with a common method.
 
-int DoMain(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
   std::shared_ptr<RigidBodySystem> iiwa_system = CreateKukaIiwaSystem();
 
   double kDuration = 0.75;
   double kInputTorqueMagnitude = 1.75;
 
   gflags::ParseCommandLineFlags(&argc, &argv, true);
+  logging::HandleSpdlogGflags();
   kDuration = FLAGS_duration;
   kInputTorqueMagnitude = FLAGS_magnitude;
 
@@ -84,5 +86,5 @@ int DoMain(int argc, char* argv[]) {
 }  // namespace drake
 
 int main(int argc, char* argv[]) {
-  return drake::examples::kuka_iiwa_arm::DoMain(argc, argv);
+  return drake::examples::kuka_iiwa_arm::main(argc, argv);
 }

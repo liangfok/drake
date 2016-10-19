@@ -25,6 +25,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
 endif()
 
+find_package(snopt_c)
+
 if(PYTHON_EXECUTABLE)
   include(SwigPython)
   set(python_install_subdir lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/dist-packages ${CMAKE_CURRENT_SOURCE_DIR}/../python)
@@ -49,7 +51,7 @@ if(PYTHON_EXECUTABLE)
   endif()
 endif()
 
-if(MATLAB_FOUND)
+if(Matlab_FOUND)
   if(SWIG_HAS_MATLAB_SUPPORT)
     # TODO: we can remove this check when mainline SWIG gets MATLAB support someday, or when we figure out how to build swig-matlab on Windows
     set(matlab_install_subdir ${CMAKE_BINARY_DIR}/bindings/matlab)

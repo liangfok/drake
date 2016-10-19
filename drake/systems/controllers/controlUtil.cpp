@@ -6,8 +6,17 @@
 #include "drake/math/rotation_matrix.h"
 #include "drake/util/drakeUtil.h"
 
-using namespace Eigen;
-
+using Eigen::AutoDiffScalar;
+using Eigen::Dynamic;
+using Eigen::Isometry3d;
+using Eigen::Matrix3d;
+using Eigen::Matrix;
+using Eigen::MatrixBase;
+using Eigen::MatrixXd;
+using Eigen::Ref;
+using Eigen::Vector3d;
+using Eigen::Vector4d;
+using Eigen::VectorXd;
 using drake::math::autoDiffToValueMatrix;
 using drake::math::expmap2quat;
 
@@ -108,7 +117,7 @@ int contactConstraintsBV(
     std::vector<double> support_mus,
     drake::eigen_aligned_std_vector<SupportStateElement>& supp, MatrixXd& B,
     MatrixXd& JB, MatrixXd& Jp, VectorXd& Jpdotv, MatrixXd& normals) {
-  int j, k = 0, nq = r.number_of_positions();
+  int j, k = 0, nq = r.get_num_positions();
 
   B.resize(3, nc * 2 * m_surface_tangents);
   JB.resize(nq, nc * 2 * m_surface_tangents);
@@ -488,15 +497,15 @@ void getRobotJointIndexMap(JointNames* joint_names,
   return;
 }
 
-template DRAKECONTROLUTIL_EXPORT void getRows(std::set<int>&,
+template DRAKE_EXPORT void getRows(std::set<int>&,
                                               const MatrixBase<MatrixXd>&,
                                               MatrixBase<MatrixXd>&);
-template DRAKECONTROLUTIL_EXPORT void getCols(std::set<int>&,
+template DRAKE_EXPORT void getCols(std::set<int>&,
                                               const MatrixBase<MatrixXd>&,
                                               MatrixBase<MatrixXd>&);
-template DRAKECONTROLUTIL_EXPORT void angleDiff(const MatrixBase<MatrixXd>&,
+template DRAKE_EXPORT void angleDiff(const MatrixBase<MatrixXd>&,
                                                 const MatrixBase<MatrixXd>&,
                                                 MatrixBase<MatrixXd>&);
-template DRAKECONTROLUTIL_EXPORT void angleDiff(const MatrixBase<Vector3d>&,
+template DRAKE_EXPORT void angleDiff(const MatrixBase<Vector3d>&,
                                                 const MatrixBase<Vector3d>&,
                                                 MatrixBase<Vector3d>&);

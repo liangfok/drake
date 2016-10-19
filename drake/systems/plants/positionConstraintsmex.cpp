@@ -6,6 +6,7 @@
 using namespace Eigen;
 using namespace std;
 
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   if (nrhs < 2 || nlhs < 2) {
     mexErrMsgIdAndTxt(
@@ -15,7 +16,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
   RigidBodyTree *model = (RigidBodyTree *)getDrakeMexPointer(prhs[0]);
 
-  const size_t nq = model->number_of_positions();
+  const size_t nq = model->get_num_positions();
 
   if (mxGetNumberOfElements(prhs[1]) != nq) {
     mexErrMsgIdAndTxt(

@@ -24,6 +24,7 @@ using drake::systems::plants::joints::kRollPitchYaw;
  * robot generated via the c++ parser
  */
 
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   if (nrhs < 1) {
     mexErrMsgIdAndTxt(
@@ -55,25 +56,25 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   // Compute coordinate transform between the two models (in case they are not
   // identical)
   MatrixXd P =
-      MatrixXd::Zero(cpp_model->number_of_positions(),
-                     matlab_model->number_of_positions());  // projection from
-                                                            // the coordinates
-                                                            // of matlab_model
-                                                            // to cpp_model
-  for (int i = 0; i < cpp_model->bodies.size(); i++) {
+      MatrixXd::Zero(cpp_model->get_num_positions(),
+                     matlab_model->get_num_positions());  // The projection from
+                                                          // the coordinates of
+                                                          // the matlab_model
+                                                          // to the cpp_model.
+  for (int i = 0; i < cpp_model->bodies.size(); ++i) {
     if (cpp_model->bodies[i]->has_parent_body() &&
-        cpp_model->bodies[i]->getJoint().getNumPositions() > 0) {
+        cpp_model->bodies[i]->getJoint().get_num_positions() > 0) {
       RigidBody* b = matlab_model->FindChildBodyOfJoint(
-          cpp_model->bodies[i]->getJoint().getName());
+          cpp_model->bodies[i]->getJoint().get_name());
       if (b == nullptr) continue;
-      for (int j = 0; j < b->getJoint().getNumPositions(); j++) {
+      for (int j = 0; j < b->getJoint().get_num_positions(); ++j) {
         P(cpp_model->bodies[i]->get_position_start_index() + j,
           b->get_position_start_index() + j) = 1.0;
       }
     }
   }
-  if (!P.isApprox(MatrixXd::Identity(matlab_model->number_of_positions(),
-                                     matlab_model->number_of_positions()))) {
+  if (!P.isApprox(MatrixXd::Identity(matlab_model->get_num_positions(),
+                                     matlab_model->get_num_positions()))) {
     cout << "P = \n" << P << endl;
     mexErrMsgTxt("ERROR: coordinates don't match");
   }
@@ -84,13 +85,13 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   for (int trial = 0; trial < 1; trial++) {
     // generate random q
     VectorXd matlab_q = matlab_model->getRandomConfiguration(generator);
-    VectorXd cpp_q(cpp_model->number_of_positions());
+    VectorXd cpp_q(cpp_model->get_num_positions());
     cpp_q.noalias() = P * matlab_q;
 
-    if ((matlab_model->number_of_positions() !=
-         matlab_model->number_of_velocities()) ||
-        (cpp_model->number_of_positions() !=
-         cpp_model->number_of_velocities())) {
+    if ((matlab_model->get_num_positions() !=
+         matlab_model->get_num_velocities()) ||
+        (cpp_model->get_num_positions() !=
+         cpp_model->get_num_velocities())) {
       mexErrMsgTxt(
           "ERROR: num_positions != num_velocities have to generate another P "
           "for "
@@ -98,9 +99,9 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     }
 
     // generate random v
-    VectorXd matlab_v(matlab_model->number_of_velocities()),
-        cpp_v(cpp_model->number_of_velocities());
-    for (int i = 0; i < matlab_model->number_of_velocities(); i++)
+    VectorXd matlab_v(matlab_model->get_num_velocities()),
+        cpp_v(cpp_model->get_num_velocities());
+    for (int i = 0; i < matlab_model->get_num_velocities(); i++)
       matlab_v[i] = distribution(generator);
     cpp_v.noalias() = P * matlab_v;
 

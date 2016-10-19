@@ -12,6 +12,7 @@
  * @retval lower_bound                 The lower bound of the joints at time t
  * @retval upper_bound                 The upper bound of the joints at time t
  * */
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   if (nrhs != 2 && nrhs != 1) {
     mexErrMsgIdAndTxt("Drake:testPostureConstraintmex:BadInputs",
@@ -26,7 +27,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     t_ptr = &t;
   }
   PostureConstraint* pc = (PostureConstraint*)getDrakeMexPointer(prhs[0]);
-  int nq = pc->getRobotPointer()->number_of_positions();
+  int nq = pc->getRobotPointer()->get_num_positions();
   Eigen::VectorXd lb, ub;
   pc->bounds(t_ptr, lb, ub);
   plhs[0] = mxCreateDoubleMatrix(nq, 1, mxREAL);

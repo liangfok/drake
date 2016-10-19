@@ -53,6 +53,7 @@ using namespace std;
  * [q, info] = approximateIKEIQPmex(objgetMexModelPtr, q0, q_nom, Q, varargin)
  * info = 0 on success, 1 on failure
  **/
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   if (nrhs < 4) {
     mexErrMsgIdAndTxt("Drake:approximateIKmex:NotEnoughInputs",
@@ -64,7 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // first get the model_ptr back from matlab
   RigidBodyTree *model = (RigidBodyTree *)getDrakeMexPointer(prhs[0]);
 
-  int i, j, error, nq = model->number_of_positions();
+  int i, j, error, nq = model->get_num_positions();
 
   static RigidBodyTree *lastModel = NULL;
   static int lastNumJointLimits = 0;

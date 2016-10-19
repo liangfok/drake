@@ -2,12 +2,14 @@
 
 #include "drake/common/constants.h"
 #include "drake/common/eigen_types.h"
+#include "drake/math/normalize_vector.h"
 #include "drake/util/drakeGeometryUtil.h"
 #include "drake/util/drakeMexUtil.h"
 
 using Eigen::Isometry3d;
 using Eigen::Vector4d;
 
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   if (nrhs != 6 || nlhs != 7) {
     mexErrMsgIdAndTxt("Drake:testGeometryGradientsmex:BadInputs",
@@ -35,7 +37,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   Vector4d x_norm;
   Gradient<Vector4d, 4, 1>::type dx_norm;
   Gradient<Vector4d, 4, 2>::type ddx_norm;
-  normalizeVec(x, x_norm, &dx_norm, &ddx_norm);
+  drake::math::NormalizeVector(x, x_norm, &dx_norm, &ddx_norm);
 
   int outnum = 0;
   plhs[outnum++] = eigenToMatlab(dT);

@@ -16,10 +16,11 @@ namespace systems {
 ///
 /// Instantiated templates for the following kinds of T's are provided:
 /// - double
+/// - AutoDiffXd
 ///
 /// They are already available to link against in libdrakeSystemFramework.
 /// No other values for T are currently supported.
-/// @ingroup systems
+/// @ingroup primitive_systems
 
 template <typename T>
 class Integrator : public LeafSystem<T> {

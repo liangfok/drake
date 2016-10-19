@@ -29,6 +29,7 @@
 using namespace std;
 using namespace Eigen;
 
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   if (nrhs != 3 || nlhs != 9) {
     mexErrMsgIdAndTxt(
@@ -39,7 +40,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   }
   SingleTimeLinearPostureConstraint* stlpc =
       (SingleTimeLinearPostureConstraint*)getDrakeMexPointer(prhs[0]);
-  int nq = stlpc->getRobotPointer()->number_of_positions();
+  int nq = stlpc->getRobotPointer()->get_num_positions();
   if (!mxIsNumeric(prhs[1]) || mxGetN(prhs[1]) != 1 || mxGetM(prhs[1]) != nq) {
     mexErrMsgIdAndTxt(
         "Drake:testSingleTimeLinearPostureConstraintmex:BadInputs",

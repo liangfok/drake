@@ -26,6 +26,7 @@ void checkBodyOrFrameID(const int body, const RigidBodyTree* model,
   }
 }
 
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   if (!mxIsNumeric(prhs[0])) {
     if (isa(prhs[0], "DrakeMexPointer")) {  // then it's calling the destructor
@@ -949,7 +950,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
       VectorXi joint_ind(num_joints);
       for (int i = 0; i < num_joints; i++) {
         joint_ind(i) = (int)joint_ind_tmp(i) - 1;
-        if (joint_ind(i) < 0 || joint_ind(i) >= model->number_of_positions()) {
+        if (joint_ind(i) < 0 || joint_ind(i) >= model->get_num_positions()) {
           mexErrMsgIdAndTxt(
               "Drake:constructPtrRigidBodyConstraintmex:BadInputs",
               "joint_ind must be within [1, nq]");
@@ -1196,7 +1197,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
       VectorXi joint_ind(num_joints);
       for (int i = 0; i < num_joints; i++) {
         joint_ind(i) = (int)joint_ind_tmp(i) - 1;
-        if (joint_ind(i) < 0 || joint_ind(i) >= model->number_of_positions()) {
+        if (joint_ind(i) < 0 || joint_ind(i) >= model->get_num_positions()) {
           mexErrMsgIdAndTxt(
               "Drake:constructPtrRigidBodyConstraintmex:BadInputs",
               "joint_ind must be within [1, nq]");

@@ -10,6 +10,7 @@
 using namespace std;
 using namespace Eigen;
 
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   if (nrhs < 7) {
     mexErrMsgIdAndTxt(
@@ -19,7 +20,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
         "nom, constraint1, constraint2,..., ikoptions");
   }
   RigidBodyTree* model = (RigidBodyTree*)getDrakeMexPointer(prhs[0]);
-  int nq = model->number_of_positions();
+  int nq = model->get_num_positions();
   int nT = static_cast<int>(mxGetNumberOfElements(prhs[1]));
   double* t = mxGetPrSafe(prhs[1]);
   Map<VectorXd> qdot0_seed(mxGetPrSafe(prhs[2]), nq);

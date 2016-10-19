@@ -16,9 +16,8 @@ Install the prerequisites::
     brew tap robotlocomotion/director
     brew update
     brew upgrade
-    brew install autoconf automake cmake doxygen gcc glib graphviz gtk+ \
-      jpeg libpng libtool mpfr mpich2 ninja numpy python qt qwt swig valgrind \
-      wget
+    brew install autoconf automake cmake doxygen gcc glib graphviz gtk+ jpeg \
+      libpng libtool mpfr ninja numpy python qt qwt valgrind wget
     brew install vtk5 --with-qt
     pip install -U beautifulsoup4 html5lib Sphinx
 
@@ -27,11 +26,5 @@ Add the line::
     export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/opt/X11/lib/pkgconfig
 
 to your ``.bash_profile`` or ``.bashrc``.
-
-Download the external dependencies::
-
-    cd drake-distro
-    make options  # use the GUI to choose which externals you want, then press 'c' to configure, then 'g' to generate makefiles and exit
-    make download-all
 
 When you are done with these platform-specific steps, return to :doc:`from_source` to complete and test your installation.

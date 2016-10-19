@@ -22,7 +22,7 @@ namespace systems {
 /// To use other specific scalar types see gain-inl.h.
 ///
 /// @tparam T The vector element type, which must be a valid Eigen scalar.
-/// @ingroup systems
+/// @ingroup primitive_systems
 template <typename T>
 class Gain : public LeafSystem<T> {
  public:
@@ -40,6 +40,12 @@ class Gain : public LeafSystem<T> {
   /// input ports are not the correct size, std::runtime_error will be thrown.
   void EvalOutput(const Context<T>& context,
                   SystemOutput<T>* output) const override;
+
+  /// Returns the input port.
+  const SystemPortDescriptor<T>& get_input_port() const;
+
+  /// Returns the output port.
+  const SystemPortDescriptor<T>& get_output_port() const;
 
  private:
   // TODO(amcastro-tri): move gain_ to System<T>::Parameter.

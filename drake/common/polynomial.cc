@@ -4,8 +4,12 @@
 #include <set>
 #include <stdexcept>
 
-using namespace std;
-using namespace Eigen;
+using Eigen::Dynamic;
+using Eigen::Matrix;
+using Eigen::PolynomialSolver;
+using std::runtime_error;
+using std::string;
+using std::vector;
 
 template <typename CoefficientType>
 bool Polynomial<CoefficientType>::Monomial::HasSameExponents(
@@ -595,7 +599,7 @@ void Polynomial<CoefficientType>::MakeMonomialsUnique(void) {
   }
 }
 
-template class DRAKECOMMON_EXPORT Polynomial<double>;
+template class DRAKE_EXPORT Polynomial<double>;
 
-// template class DRAKECOMMON_EXPORT Polynomial<std::complex<double>>; //
+// template class DRAKE_EXPORT Polynomial<std::complex<double>>;
 // doesn't work yet because the roots solver can't handle it

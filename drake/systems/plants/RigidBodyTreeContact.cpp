@@ -1,8 +1,15 @@
 #include "drake/systems/plants/RigidBodyTree.h"
+
 #include <iostream>
 
-using namespace Eigen;
-using namespace std;
+using Eigen::Dynamic;
+using Eigen::Map;
+using Eigen::Matrix3Xd;
+using Eigen::Matrix;
+using Eigen::Ref;
+using Eigen::Vector3d;
+using Eigen::VectorXi;
+using std::vector;
 
 // Computes surface tangent vectors for a single normal vector
 // INPUTS:
@@ -238,7 +245,7 @@ void RigidBodyTree::surfaceTangents(
   }
 }
 
-template DRAKERBM_EXPORT void RigidBodyTree::computeContactJacobians<
+template DRAKE_EXPORT void RigidBodyTree::computeContactJacobians<
     Eigen::AutoDiffScalar<Eigen::Matrix<double, -1, 1, 0, 73, 1> > >(
     KinematicsCache<Eigen::AutoDiffScalar<
         Eigen::Matrix<double, -1, 1, 0, 73, 1> > > const &,
@@ -253,7 +260,7 @@ template DRAKERBM_EXPORT void RigidBodyTree::computeContactJacobians<
     Eigen::Matrix<
         Eigen::AutoDiffScalar<Eigen::Matrix<double, -1, 1, 0, 73, 1> >, -1, -1,
         0, -1, -1> &) const;
-template DRAKERBM_EXPORT void RigidBodyTree::computeContactJacobians<
+template DRAKE_EXPORT void RigidBodyTree::computeContactJacobians<
     Eigen::AutoDiffScalar<Eigen::Matrix<double, -1, 1, 0, -1, 1> > >(
     KinematicsCache<Eigen::AutoDiffScalar<
         Eigen::Matrix<double, -1, 1, 0, -1, 1> > > const &,
@@ -268,7 +275,7 @@ template DRAKERBM_EXPORT void RigidBodyTree::computeContactJacobians<
     Eigen::Matrix<
         Eigen::AutoDiffScalar<Eigen::Matrix<double, -1, 1, 0, -1, 1> >, -1, -1,
         0, -1, -1> &) const;
-template DRAKERBM_EXPORT void RigidBodyTree::computeContactJacobians<double>(
+template DRAKE_EXPORT void RigidBodyTree::computeContactJacobians<double>(
     KinematicsCache<double> const &,
     Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1> const, 0,
                Eigen::InnerStride<1> > const &,

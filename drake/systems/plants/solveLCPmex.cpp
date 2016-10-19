@@ -197,6 +197,7 @@ bool callFastQP(MatrixBase<DerivedM> const& M, MatrixBase<Derivedw> const& w,
 
 // [z, Mvn, wvn] = setupLCPmex(mex_model_ptr, cache_ptr, u, phiC, n, D, h,
 //   z_inactive_guess_tol)
+DLL_EXPORT_SYM
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   if (nlhs != 5 || nrhs != 13) {
     mexErrMsgIdAndTxt("Drake:setupLCPmex:InvalidUsage",
@@ -214,8 +215,8 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
       fromMex(prhs[arg_num++], static_cast<KinematicsCache<double>*>(nullptr));
   cache.checkCachedKinematicsSettings(true, true, "solveLCPmex");
 
-  const int nq = model->number_of_positions();
-  const int nv = model->number_of_velocities();
+  const int nq = model->get_num_positions();
+  const int nv = model->get_num_velocities();
 
   // input mappings
   const mxArray* u_array = prhs[arg_num++];

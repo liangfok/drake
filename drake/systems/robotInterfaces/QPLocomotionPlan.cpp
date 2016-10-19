@@ -7,7 +7,7 @@
 #include <string>
 
 #include "drake/common/constants.h"
-#include "drake/drakeQPLocomotionPlan_export.h"  // TODO(tkoolen): exports
+#include "drake/common/drake_export.h"  // TODO(tkoolen): exports
 #include "drake/examples/Atlas/atlasUtil.h"
 #include "drake/math/autodiff.h"
 #include "drake/math/autodiff_gradient.h"
@@ -25,9 +25,20 @@
 // TODO(tkoolen): make body_motions a map from RigidBody* to BodyMotionData,
 // remove body_id from BodyMotionData?
 
-using namespace std;
-using namespace Eigen;
-using namespace drake;
+using Eigen::Dynamic;
+using Eigen::Isometry3d;
+using Eigen::Map;
+using Eigen::Matrix3Xd;
+using Eigen::Matrix;
+using Eigen::MatrixBase;
+using Eigen::MatrixXd;
+using Eigen::Ref;
+using Eigen::Stride;
+using Eigen::Vector2d;
+using Eigen::Vector3d;
+using Eigen::Vector4d;
+using Eigen::Vector4f;
+using Eigen::VectorXd;
 
 using drake::kQuaternionSize;
 using drake::kSpaceDimension;
@@ -40,6 +51,12 @@ using drake::math::expmap2quat;
 using drake::math::initializeAutoDiffGivenGradientMatrix;
 using drake::math::quat2expmap;
 using drake::math::quatRotateVec;
+
+using std::allocator;
+using std::cerr;
+using std::endl;
+using std::runtime_error;
+using std::vector;
 
 const std::map<SupportLogicType, std::vector<bool>>
     QPLocomotionPlan::support_logic_maps_ =
@@ -155,7 +172,7 @@ drake::lcmt_qp_controller_input QPLocomotionPlan::createQPControllerInput(
   // whole body data
   auto q_des = settings_.q_traj.value(t_plan);
   qp_input.whole_body_data.timestamp = 0;
-  qp_input.whole_body_data.num_positions = robot_.number_of_positions();
+  qp_input.whole_body_data.num_positions = robot_.get_num_positions();
   eigenVectorToStdVector(q_des, qp_input.whole_body_data.q_des);
   qp_input.whole_body_data.constrained_dofs =
       settings_.constrained_position_indices;
@@ -885,14 +902,14 @@ const std::map<Side, int> QPLocomotionPlan::createJointIndicesMap(
   return joint_indices;
 }
 
-template DRAKEQPLOCOMOTIONPLAN_EXPORT drake::lcmt_qp_controller_input
+template DRAKE_EXPORT drake::lcmt_qp_controller_input
 QPLocomotionPlan::createQPControllerInput<
   Matrix<double, -1, 1, 0, -1, 1>,
   Matrix<double, -1, 1, 0, -1, 1>>(
       double, MatrixBase<Matrix<double, -1, 1, 0, -1, 1>> const&,
       MatrixBase<Matrix<double, -1, 1, 0, -1, 1>> const&,
       std::vector<bool, std::allocator<bool>> const&);
-template DRAKEQPLOCOMOTIONPLAN_EXPORT drake::lcmt_qp_controller_input
+template DRAKE_EXPORT drake::lcmt_qp_controller_input
 QPLocomotionPlan::createQPControllerInput<
   Map<Matrix<double, -1, 1, 0, -1, 1> const, 0, Stride<0, 0>>,
   Map<Matrix<double, -1, 1, 0, -1, 1> const, 0, Stride<0, 0>>>(
