@@ -5,6 +5,7 @@ cmake_policy(SET CMP0025 NEW)
 cmake_policy(SET CMP0042 NEW)
 
 include(../cmake/config.cmake)
+include(../cmake/packages.cmake)
 include(../cmake/test.cmake)
 
 drake_setup_platform()
@@ -144,24 +145,24 @@ endif()
 enable_testing()
 include(CTest)
 set(GTEST_ROOT ${CMAKE_INSTALL_PREFIX})
-find_package(GTest REQUIRED)
+drake_find_package(GTest REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGTEST_DONT_DEFINE_FAIL=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGTEST_DONT_DEFINE_SUCCEED=1")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGTEST_DONT_DEFINE_TEST=1")
 
-find_package(gflags REQUIRED)
+drake_find_package(gflags CONFIG REQUIRED)
 
 set(drake_jar_javafiles util/Transform.java)
 set(drake_jar_requires)
 
 include(../cmake/procman.cmake)  # helper script for writing procman files
 
-find_package(Threads REQUIRED)
+drake_find_package(Threads MODULE REQUIRED)
 
 # set up and build lcm types
-find_package(lcm)
+drake_find_package(lcm CONFIG)
 if(lcm_FOUND)
-  find_package(bot2-core)
+  drake_find_package(bot2-core CONFIG)
 
   add_subdirectory(lcmtypes)
 
@@ -205,7 +206,7 @@ pods_install_pkg_config_file(drake-java
   REQUIRES ${drake_jar_requires}
   VERSION 0.0.1)
 
-find_package(Eigen3 REQUIRED)
+drake_find_package(Eigen3 CONFIG REQUIRED)
 include_directories(SYSTEM "${EIGEN3_INCLUDE_DIRS}")
 
 include_directories(thirdParty/bsd/spruce/include)

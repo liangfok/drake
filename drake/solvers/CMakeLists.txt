@@ -1,9 +1,9 @@
-pods_find_pkg_config(gurobi)
+drake_find_package(gurobi PKG_CONFIG)
 
 if(gurobi_FOUND)
-
   add_library_with_exports(LIB_NAME drakeQP SOURCE_FILES qp.cc)
-  pods_use_pkg_config_packages(drakeQP gurobi)
+  target_include_directories(drakeQP PUBLIC ${gurobi_INCLUDE_DIRS})
+  target_link_libraries(drakeQP ${gurobi_LIBRARIES})
 
   pods_install_libraries(drakeQP)
   drake_install_headers(fast_qp.h gurobi_qp.h)
@@ -18,13 +18,13 @@ list(APPEND optimization_files
   mathematical_program.cc moby_lcp_solver.cc
   system_identification.cpp linear_system_solver.cc
   equality_constrained_qp_solver.cc)
-pods_find_pkg_config(ipopt)
+drake_find_package(ipopt PKG_CONFIG)
 if (ipopt_FOUND)
  list(APPEND optimization_files ipopt_solver.cc)
 else()
   list(APPEND optimization_files no_ipopt.cc)
 endif(ipopt_FOUND)
-find_package(NLopt)
+drake_find_package(NLopt)
 if(NLopt_FOUND)
   list(APPEND optimization_files nlopt_solver.cc)
 else()
@@ -36,13 +36,13 @@ if(dreal_FOUND)
 else()
   list(APPEND optimization_files no_dreal.cc)
 endif()
-find_package(snopt_c)
+drake_find_package(snopt_c)
 if(snopt_c_FOUND)
   list(APPEND optimization_files snopt_solver.cc)
 else()
   list(APPEND optimization_files no_snopt.cc)
 endif()
-pods_find_pkg_config(mosek)
+drake_find_package(mosek PKG_CONFIG)
 if(mosek_FOUND)
   list(APPEND optimization_files mosek_solver.cc mosek_wrapper.cc)
 else()
@@ -72,7 +72,8 @@ pods_install_pkg_config_file(drake-optimization
   VERSION 0.0.1)
 
 if(ipopt_FOUND)
-  pods_use_pkg_config_packages(drakeOptimization ipopt)
+  target_include_directories(drakeOptimization PUBLIC ${ipopt_INCLUDE_DIRS})
+  target_link_libraries(drakeOptimization ${ipopt_LIBRARIES})
   # IPOPT builds its own version of BLAS during compilation, and links
   # it into the output library.  On (at least some) ELF systems, you
   # wind up with a symbol name collision between IPOPT's BLAS and
@@ -100,11 +101,12 @@ if(snopt_c_FOUND)
   target_link_libraries(drakeOptimization snopt_c)
 endif()
 if(gurobi_FOUND)
-  pods_use_pkg_config_packages(drakeOptimization gurobi)
+  target_include_directories(drakeOptimization PUBLIC ${gurobi_INCLUDE_DIRS})
+  target_link_libraries(drakeOptimization ${gurobi_LIBRARIES})
 endif()
-
 if(mosek_FOUND)
-  pods_use_pkg_config_packages(drakeOptimization mosek)
+  target_include_directories(drakeOptimization PUBLIC ${mosek_INCLUDE_DIRS})
+  target_link_libraries(drakeOptimization ${mosek_LIBRARIES})
 endif()
 
 add_subdirectory(qpSpline)

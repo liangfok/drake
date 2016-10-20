@@ -19,10 +19,12 @@ if(lcm_FOUND)
     VERSION 0.0.1)
 endif()
 
+# ==== Below this line is MATLAB-specific code ====
+
 if(Matlab_FOUND)
   drake_add_mex(footstepCollocationConstraintsMex footstepCollocationConstraintsMex.cpp)
 
-  find_package(octomap)
+  drake_find_package(octomap CONFIG)
 
   if(octomap_FOUND)
     drake_add_mex(octomapWrapper octomapWrapper.cpp $<TARGET_OBJECTS:drakeUtil>)
@@ -39,3 +41,6 @@ endif()
 
 add_subdirectory(calibration/test)
 add_subdirectory(test)
+
+# ==== Below this line is C++ and MATLAB shared code ====
+
