@@ -16,8 +16,8 @@ namespace lcm {
 /**
  * %SerializerInterface translates between LCM message bytes and
  * drake::systems::AbstractValue objects that contain LCM messages, e.g., a
- * Value<lcmt_drake_signal>.  See Serializer for a message-specific concrete
- * subclass.
+ * \link drake::systems::Value drake::systems::Value<lcmt_drake_signal>\endlink.
+ * See Serializer for a message-specific concrete subclass.
  */
 class DRAKE_EXPORT SerializerInterface {
  public:
