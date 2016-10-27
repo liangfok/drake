@@ -117,8 +117,13 @@ class AutomotiveSimulator {
   // For building.
   std::unique_ptr<systems::DiagramBuilder<T>> builder_{
     std::make_unique<systems::DiagramBuilder<T>>()};
-  std::vector<std::pair<const RigidBody*, const systems::System<T>*>>
+
+  // Holds the vehicle models to display. The integer is the vehicle's model
+  // instance ID while the pointer points to the system that emits the vehicle's
+  // RPY pose in the world.
+  std::vector<std::pair<int, const systems::System<T>*>>
       rigid_body_tree_publisher_inputs_;
+
   int next_vehicle_number_{0};
   bool started_{false};
 
