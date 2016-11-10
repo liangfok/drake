@@ -37,10 +37,12 @@ void GravityCompensator<T>::EvalOutput(const Context<T>& context,
   // need to extract from `g` the torque / force commands corresponding to the
   // actuators that are used.
   Eigen::VectorXd actuated_g(rigid_body_tree_.get_num_actuators());
-  for (int i = 0; i < rigid_body_tree_.get_num_actuators(); ++i) {
-    int index_in_g =
-        rigid_body_tree_.actuators.at(i).body_->get_position_start_index();
-    actuated_g[i] = g[index_in_g];
+  for (int actuator_index = 0;
+      actuator_index < rigid_body_tree_.get_num_actuators(); ++actuator_index) {
+    int gravity_index =
+        rigid_body_tree_.actuators.at(actuator_index).body_->
+            get_position_start_index();
+    actuated_g[actuator_index] = g[gravity_index];
   }
   DRAKE_ASSERT(actuated_g.size() ==
                System<T>::GetMutableOutputVector(output, 0).size());
