@@ -53,6 +53,8 @@ lcm_wrap_types(
   lcmt_simple_car_config_t.lcm
   lcmt_simple_car_state_t.lcm
   lcmt_simulation_command.lcm
+  lcmt_std_msgs_header.lcm
+  lcmt_std_msgs_time.lcm
   lcmt_support_data.lcm
   lcmt_viewer_command.lcm
   lcmt_viewer_draw.lcm

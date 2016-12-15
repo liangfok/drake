@@ -1,0 +1,14 @@
+// This is an LCM implementation of ROS' diagnostic_msgs/KeyValue.
+//
+// For more information about the ROS message upon which this is based, see:
+// http://docs.ros.org/api/diagnostic_msgs/html/msg/KeyValue.html
+//
+package drake;
+
+// Standard metadata for higher-level stamped data types.
+// This is generally used to communicate timestamped data
+// in a particular coordinate frame.
+struct lcmt_diagnostic_msgs_key_value {
+  string key  // What to label this value when viewing.
+  string value  // A value to track over time.
+}

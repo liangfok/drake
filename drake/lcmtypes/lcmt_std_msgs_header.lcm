@@ -1,0 +1,27 @@
+// This is an LCM implementation of ROS' std_msgs/Header.
+//
+// For more information about the ROS message upon which this is based, see:
+// http://docs.ros.org/api/std_msgs/html/msg/Header.html
+//
+package drake;
+
+// Standard metadata for higher-level stamped data types.
+// This is generally used to communicate timestamped data
+// in a particular coordinate frame.
+struct lcmt_std_msgs_header {
+  // The sequence ID: A consecutively increasing ID. Note that the original ROS
+  // message uses a 32-bit unsigned integer. This message uses a 64-bit signed
+  // integer because LCM does not support unsigned integers:
+  // http://lcm-proj.github.io/type_specification.html.
+  int64_t seq;
+
+  // Two-integer timestamp that is expressed as:
+  //  * stamp.sec: seconds since epoch
+  //  * stamp.nsec: nanoseconds since stamp.sec
+  lcmt_std_msgs_time stamp;
+
+  // Frame this data is associated with
+  //  0: no frame
+  //  1: global frame
+  string frame_id;
+}
