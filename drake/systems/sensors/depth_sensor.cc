@@ -53,10 +53,6 @@ DepthSensor::DepthSensor(const std::string& name,
                "min_theta must be less than or equal to max_theta.");
   DRAKE_DEMAND(specification_.min_phi() <= specification_.max_phi() &&
                "min_phi must be less than or equal to max_phi.");
-  DRAKE_DEMAND(specification_.min_phi() >= -M_PI / 2 &&
-               "min_phi must be greater than or equal to -M_PI/2.");
-  DRAKE_DEMAND(specification_.max_phi() <= M_PI / 2 &&
-               "min_phi must be less than or equal to M_PI/2.");
   if (specification_.min_theta() == specification_.max_theta()) {
     DRAKE_DEMAND(specification_.num_theta_values() == 1 &&
                  "num_theta_values must equal 1.");
@@ -86,8 +82,13 @@ void DepthSensor::CacheRaycastEndpoints() {
   raycast_endpoints_->resize(3, get_num_depth_readings());
 
   // TODO(liang.fok) Optimize the following code by eliminating duplicate end
-  // points. Currently, identical end points can occur when phi = PI / 2 or
-  // -PI / 2 or when theta > 2 * PI.
+  // points. Currently, identical raycast end points can occur when:
+  //
+  // (1) phi = PI / 2
+  // (2) phi = -PI / 2
+  // (3) phi = PI and and phi = -PI for a given theta
+  // (3) theta > 2 * PI
+  //
   for (int i = 0; i < get_num_pixel_rows(); ++i) {
     double phi = specification_.min_phi() + i * specification_.phi_increment();
 
@@ -120,6 +121,16 @@ void DepthSensor::CacheRaycastEndpoints() {
           1.1 * specification_.max_range() * Vector3<double>(x, y, z);
     }
   }
+}
+
+const InputPortDescriptor<double>&
+    DepthSensor::get_rigid_body_tree_state_input_port() const {
+  return this->get_input_port(state_input_port_id_);
+}
+
+const OutputPortDescriptor<double>&
+    DepthSensor::get_sensor_state_output_port() const {
+  return System<double>::get_output_port(state_output_port_id_);
 }
 
 std::unique_ptr<SystemOutput<double>> DepthSensor::AllocateOutput(
@@ -173,8 +184,7 @@ void DepthSensor::DoCalcOutput(const systems::Context<double>& context,
   // range.
   for (int i = 0; i < distances.size(); ++i) {
     if (distances[i] < 0) {
-      // Through experimentation, Liang determined that infinity distance
-      // measurements show up as -1.
+      // Infinity distance measurements show up as -1.
       if (distances[i] == -1) {
         distances[i] = kTooFar;
       } else {

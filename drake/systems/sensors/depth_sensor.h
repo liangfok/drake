@@ -70,8 +70,14 @@ class DepthSensor : public systems::LeafSystem<double> {
   /// The depth value when the max sensing range is exceeded.
   static constexpr double kTooFar{std::numeric_limits<double>::infinity()};
 
-  /// The depth value when the min sensing range is violated.
-  static constexpr double kTooClose{-std::numeric_limits<double>::infinity()};
+  /// The depth value when the min sensing range is violated because the object
+  /// being sensed is too close. Note that this
+  /// <a href="http://www.ros.org/reps/rep-0117.html">differs from ROS</a>,
+  /// which uses negative infinity in this scenario. Drake uses zero because it
+  /// results in less devastating bugs when users fail to check for the lower
+  /// limit being hit and using negative infinity does not prevent users from
+  /// writing bad code.
+  static constexpr double kTooClose{0};
 
   /// A constructor that initializes a DepthSensor using a separate input
   /// parameter for each dimension within the sensor specification.
@@ -174,16 +180,12 @@ class DepthSensor : public systems::LeafSystem<double> {
 
   /// Returns a descriptor of the input port containing the generalized state of
   /// the RigidBodyTree.
-  const SystemPortDescriptor<double>& get_rigid_body_tree_state_input_port()
-      const {
-    return this->get_input_port(state_input_port_id_);
-  }
+  const InputPortDescriptor<double>& get_rigid_body_tree_state_input_port()
+      const;
 
   /// Returns a descriptor of the state output port, which contains the sensor's
   /// sensed values.
-  const SystemPortDescriptor<double>& get_sensor_state_output_port() const {
-    return System<double>::get_output_port(state_output_port_id_);
-  }
+  const OutputPortDescriptor<double>& get_sensor_state_output_port() const;
 
   // System<double> overrides.
 
@@ -202,19 +204,11 @@ class DepthSensor : public systems::LeafSystem<double> {
 
  private:
   // The depth sensor will cast a ray with its start point at (0,0,0) in the
-  // sensor's frame (as defined by RigidBodyTreeSensor::get_frame()). Its end,
-  // in the sensor's frame, is computed by this method and stored in member
-  // variable raycast_endpoints_ at the time of construction. raycast_endpoints_
-  // is only computed once at construction since the end points are constant in
-  // the sensor's frame.
-  //
-  // TODO(liang.fok): fix the documentation below -- it doesn't make sense why
-  // it's focused on the yaw or pitch direction.
-  //
-  // The end points are computed by scanning in the yaw (pitch) direction
-  // discretizing the yaw (pitch) range in num_pixel_cols (num_pixel_rows).
-  // The final 3D end point then corresponds to a ray that starts at zero, with
-  // length max_range, at the specific yaw (pitch) angle.
+  // sensor's frame (as defined by get_frame()). Its end, in the sensor's frame,
+  // is computed by this method and stored in member variable raycast_endpoints_
+  // at the time of construction. raycast_endpoints_ is only computed once at
+  // the time of construction since the end points are constant in the sensor's
+  // frame.
   void CacheRaycastEndpoints();
 
   const std::string name_;

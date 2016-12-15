@@ -41,6 +41,26 @@ class DepthSensorOutput : public BasicVector<T> {
   /// measurement was taken at the specified sensor angles.
   double GetDistance(double theta, double phi) const;
 
+  /// Returns the measured distance when the sensor is in the provided
+  /// @p yaw_column_index and @p phi_row_index configuration.
+  ///
+  /// @param[in] yaw_column_index The index of the yaw column in the depth image
+  /// map. This value must be between zero and
+  /// DepthSensor::get_num_pixel_cols(). The theta angle of the sensor in the sensor's frame. This
+  /// is the rotation about the +Z axis (right-hand rule), zero points down the
+  /// +X axis.
+  ///
+  /// @param[in] phi The phi angle of the sensor in the sensor's frame. This is
+  /// the rotation about the +Y axis (right-hand rule). A value of zero points
+  /// down the +X axis. A value of M_PI / 2 points down the -Z axis.
+  ///
+  /// @return The measured distance when the sensor is at @p theta and @p phi.
+  ///
+  /// @throws std::runtime_error if @p theta or @p phi are invalid, which occurs
+  /// when they fall out of the sensor's min / max rotation range or if no
+  /// measurement was taken at the specified sensor angles.
+  double GetDistance(double yaw_column_index, double pitch_row_index) const;
+
   //@}
 
  private:
