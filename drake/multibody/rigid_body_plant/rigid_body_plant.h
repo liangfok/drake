@@ -5,8 +5,8 @@
 
 #include <Eigen/Geometry>
 
-#include "drake/common/drake_export.h"
 #include "drake/multibody/rigid_body_tree.h"
+#include "drake/multibody/rigid_body_plant/contact_results.h"
 #include "drake/multibody/rigid_body_plant/kinematics_results.h"
 #include "drake/systems/framework/leaf_system.h"
 
@@ -68,10 +68,12 @@ namespace systems {
 /// @tparam T The scalar type. Must be a valid Eigen scalar.
 /// @ingroup rigid_body_systems
 template <typename T>
-class DRAKE_EXPORT RigidBodyPlant : public LeafSystem<T> {
+class RigidBodyPlant : public LeafSystem<T> {
  public:
   /// Instantiates a %RigidBodyPlant from a Multi-Body Dynamics (MBD) model of
   /// the world in @p tree.  @p tree must not be `nullptr`.
+  // TODO(SeanCurtis-TRI): It appears that the tree has to be "compiled"
+  // already.  Confirm/deny and document that result.
   explicit RigidBodyPlant(std::unique_ptr<const RigidBodyTree<T>> tree);
 
   ~RigidBodyPlant() override;
@@ -124,13 +126,18 @@ class DRAKE_EXPORT RigidBodyPlant : public LeafSystem<T> {
   void set_state_vector(Context<T>* context,
                         const Eigen::Ref<const VectorX<T>> x) const;
 
+  /// Sets the continuous state vector of the system to be @p x.
+  void set_state_vector(State<T>* state,
+                        const Eigen::Ref<const VectorX<T>> x) const;
+
   /// Sets the state in @p context so that generalized positions and velocities
   /// are zero. For quaternion based joints the quaternion is set to be the
   /// identity (or equivalently a zero rotation).
-  void SetZeroConfiguration(Context<T>* context) const {
+  void SetDefaultState(const Context<T>& context,
+                       State<T>* state) const override {
     // Extract a pointer to continuous state from the context.
-    DRAKE_DEMAND(context != nullptr);
-    ContinuousState<T>* xc = context->get_mutable_continuous_state();
+    DRAKE_DEMAND(state != nullptr);
+    ContinuousState<T>* xc = state->get_mutable_continuous_state();
     DRAKE_DEMAND(xc != nullptr);
 
     // Write the zero configuration into the continuous state.
@@ -180,6 +187,30 @@ class DRAKE_EXPORT RigidBodyPlant : public LeafSystem<T> {
   static T JointLimitForce(const DrakeJoint& joint,
                            const T& position, const T& velocity);
 
+  /// Returns descriptor of state output port.
+  const SystemPortDescriptor<T>& state_output_port() const {
+    return System<T>::get_output_port(state_output_port_id_);
+  }
+
+  /// Returns descriptor of KinematicsResults output port.
+  const SystemPortDescriptor<T>& kinematics_results_output_port() const {
+    return System<T>::get_output_port(kinematics_output_port_id_);
+  }
+
+  /// Returns descriptor of ContactResults output port.
+  const SystemPortDescriptor<T>& contact_results_output_port() const {
+    return System<T>::get_output_port(contact_output_port_id_);
+  }
+
+  /// Creates a right-handed local basis from a z-axis. Defines an arbitrary x-
+  /// and y-axis such that the basis is orthonormal.  The basis is R_WL, where W
+  /// is the frame in which the z-axis is expressed and L is a local basis such
+  /// that v_W = R_WL * v_L.
+  /// @param[in] z_axis_W   The vector defining the basis's z-axis expressed
+  ///                       in frame W.
+  /// @retval R_WL          The computed basis.
+  static Matrix3<T> ComputeBasisFromZ(const Vector3<T>& z_axis_W);
+
  protected:
   // LeafSystem<T> override.
   std::unique_ptr<ContinuousState<T>> AllocateContinuousState() const override;
@@ -197,6 +228,22 @@ void DoMapQDotToVelocity(
       VectorBase<T> *generalized_velocity) const override;
 
  private:
+  // Computes the contact results for feeding the corresponding output port.
+  void ComputeContactResults(const Context<T>& context,
+                             ContactResults<T>* contacts) const;
+
+  // Computes the generalized forces on all bodies due to contact.
+  //
+  // @param kinsol         The kinematics of the rigid body system at the time
+  //                       of contact evaluation.
+  // @param[out] contacts  The optional contact results.  If non-null, stores
+  //                       the contact information for consuming on the output
+  //                       port.
+  // @return               The generalized forces across all the bodies due to
+  //                       contact response.
+  VectorX<T> ComputeContactForce(const KinematicsCache<T>& kinsol,
+                                 ContactResults<T>* contacts = nullptr) const;
+
   // Some parameters defining the contact.
   // TODO(amcastro-tri): Implement contact materials for the RBT engine.
   T penetration_stiffness_{150.0};  // An arbitrarily large number.
@@ -204,8 +251,9 @@ void DoMapQDotToVelocity(
   T friction_coefficient_{1.0};
 
   std::unique_ptr<const RigidBodyTree<T>> tree_;
-  int state_output_port_id_;
-  int kinematics_output_port_id_;
+  int state_output_port_id_{};
+  int kinematics_output_port_id_{};
+  int contact_output_port_id_{};
 };
 
 }  // namespace systems

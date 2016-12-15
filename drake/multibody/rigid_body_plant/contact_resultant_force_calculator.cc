@@ -1,12 +1,38 @@
 #include "drake/multibody/rigid_body_plant/contact_resultant_force_calculator.h"
+#include "drake/multibody/rigid_body_plant/point_contact_detail.h"
 
 namespace drake {
 namespace systems {
+
+using std::unique_ptr;
+using std::vector;
+using std::move;
+
+template <typename T>
+ContactResultantForceCalculator<T>::ContactResultantForceCalculator()
+    : detail_accumulator_(nullptr) {}
+
+template <typename T>
+ContactResultantForceCalculator<T>::ContactResultantForceCalculator(
+    vector<unique_ptr<ContactDetail<T>>>* detail_accumulator)
+    : detail_accumulator_(detail_accumulator) {}
 
 template <typename T>
 void ContactResultantForceCalculator<T>::AddForce(
     const ContactForce<T>& force) {
   forces_.push_back(force);
+  AccumulateForce(force);
+}
+
+template <typename T>
+void ContactResultantForceCalculator<T>::AddForce(
+    std::unique_ptr<ContactDetail<T>> contact_detail) {
+  forces_.push_back(contact_detail->ComputeContactForce());
+  if (detail_accumulator_ != nullptr) {
+    detail_accumulator_->emplace_back(move(contact_detail));
+  }
+  // No accumulator means the contact detail can be destroyed; it has served its
+  // purpose.
 }
 
 template <typename T>
@@ -14,6 +40,7 @@ void ContactResultantForceCalculator<T>::AddForce(
     const Vector3<T>& application_point, const Vector3<T>& normal,
     const Vector3<T>& force) {
   forces_.emplace_back(application_point, normal, force);
+  AccumulateForce(forces_.back());
 }
 
 template <typename T>
@@ -21,6 +48,7 @@ void ContactResultantForceCalculator<T>::AddForce(
     const Vector3<T>& application_point, const Vector3<T>& normal,
     const Vector3<T>& force, const Vector3<T>& pure_torque) {
   forces_.emplace_back(application_point, normal, force, pure_torque);
+  AccumulateForce(forces_.back());
 }
 
 template <typename T>
@@ -132,6 +160,44 @@ ContactForce<T> ContactResultantForceCalculator<T>::ComputeResultant() const {
   return ContactForce<T>(min_point, normal,
                          normal_component_sum + tangent_component_sum,
                          result_torque);
+}
+
+template <typename T>
+ContactForce<T> ContactResultantForceCalculator<T>::ComputeResultant(
+    const Vector3<T>& reference_point) const {
+  Vector3<T> result_torque = Vector3<T>::Zero();
+  Vector3<T> tangent_component_sum = Vector3<T>::Zero();
+  Vector3<T> normal_component_sum = Vector3<T>::Zero();
+  Vector3<T> arm;
+
+  for (const auto& force : forces_) {
+    normal_component_sum += force.get_normal_force();
+    result_torque += force.get_torque();
+    tangent_component_sum += force.get_tangent_force();
+
+    arm = force.get_application_point() - reference_point;
+    result_torque += arm.cross(force.get_force());
+  }
+
+  Vector3<T> normal;
+  T denom = normal_component_sum.squaredNorm();
+  if (denom > Eigen::NumTraits<T>::dummy_precision()) {
+    normal = normal_component_sum.normalized();
+  } else {
+    normal << 0, 0, 1;
+  }
+
+  return ContactForce<T>(reference_point, normal,
+                         normal_component_sum + tangent_component_sum,
+                         result_torque);
+}
+
+template <typename T>
+void ContactResultantForceCalculator<T>::AccumulateForce(
+    const ContactForce<T>& force) {
+  if (detail_accumulator_ != nullptr) {
+    detail_accumulator_->emplace_back(new PointContactDetail<T>(force));
+  }
 }
 
 template class ContactResultantForceCalculator<double>;

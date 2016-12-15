@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <utility>
@@ -12,20 +13,19 @@
 #include "drake/common/constants.h"
 #include "drake/common/drake_deprecated.h"
 #include "drake/common/eigen_stl_types.h"
-#include "drake/common/drake_export.h"
 #include "drake/math/rotation_matrix.h"
 #include "drake/multibody/force_torque_measurement.h"
 #include "drake/multibody/kinematic_path.h"
-#include "drake/multibody/kinematics_cache.h"
+#include "drake/multibody/kinematics_cache-inl.h"
 #include "drake/multibody/rigid_body.h"
 #include "drake/multibody/rigid_body_frame.h"
 #include "drake/multibody/collision/drake_collision.h"
+#include "drake/multibody/collision/element.h"
 #include "drake/multibody/joints/floating_base_types.h"
 #include "drake/multibody/pose_map.h"
 #include "drake/multibody/rigid_body_actuator.h"
 #include "drake/multibody/rigid_body_loop.h"
 #include "drake/multibody/shapes/drake_shapes.h"
-#include "drake/util/drakeGeometryUtil.h"
 
 #define BASIS_VECTOR_HALF_COUNT \
   2  // number of basis vectors over 2 (i.e. 4 basis vectors in this case)
@@ -71,7 +71,7 @@ typedef Eigen::Matrix<double, 3, BASIS_VECTOR_HALF_COUNT> Matrix3kd;
  * @tparam T The scalar type. Must be a valid Eigen scalar.
  */
 template <typename T>
-class DRAKE_EXPORT RigidBodyTree {
+class RigidBodyTree {
  public:
   /**
    * Defines the name of the rigid body within a rigid body tree that represents
@@ -85,62 +85,12 @@ class DRAKE_EXPORT RigidBodyTree {
    */
   static const int kWorldBodyIndex;
 
-  RigidBodyTree(
-      const std::string& urdf_filename,
-      const drake::multibody::joints::FloatingBaseType
-          floating_base_type = drake::multibody::joints::kRollPitchYaw);
+  /// A constructor that initializes the gravity vector to be [0, 0, -9.81] and
+  /// a single RigidBody named "world". This RigidBody can be accessed by
+  /// calling RigidBodyTree::world().
   RigidBodyTree(void);
+
   virtual ~RigidBodyTree(void);
-
-#ifndef SWIG
-  DRAKE_DEPRECATED("Please use AddModelInstanceFromURDFString.")
-#endif
-  void addRobotFromURDFString(
-      const std::string& xml_string, const std::string& root_dir = ".",
-      const drake::multibody::joints::FloatingBaseType
-          floating_base_type = drake::multibody::joints::kRollPitchYaw,
-      std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
-
-#ifndef SWIG
-  DRAKE_DEPRECATED("Please use AddModelInstanceFromURDFString.")
-#endif
-  void addRobotFromURDFString(
-      const std::string& xml_string,
-      // TODO(#2274) Fix NOLINTNEXTLINE(runtime/references).
-      std::map<std::string, std::string>& ros_package_map,
-      const std::string& root_dir = ".",
-      const drake::multibody::joints::FloatingBaseType
-          floating_base_type = drake::multibody::joints::kRollPitchYaw,
-      std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
-
-#ifndef SWIG
-  DRAKE_DEPRECATED("Please use AddModelInstanceFromURDF.")
-#endif
-  void addRobotFromURDF(
-      const std::string& urdf_filename,
-      const drake::multibody::joints::FloatingBaseType
-          floating_base_type = drake::multibody::joints::kRollPitchYaw,
-      std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
-
-#ifndef SWIG
-  DRAKE_DEPRECATED("Please use AddModelInstanceFromURDF.")
-#endif
-  void addRobotFromURDF(
-      const std::string& urdf_filename,
-      // TODO(#2274) Fix NOLINTNEXTLINE(runtime/references).
-      std::map<std::string, std::string>& ros_package_map,
-      const drake::multibody::joints::FloatingBaseType
-          floating_base_type = drake::multibody::joints::kRollPitchYaw,
-      std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
-
-#ifndef SWIG
-  DRAKE_DEPRECATED("Please use AddModelInstancesFromSdfFile.")
-#endif
-  void addRobotFromSDF(const std::string& sdf_filename,
-                       const drake::multibody::joints::FloatingBaseType
-                           floating_base_type =
-                               drake::multibody::joints::kQuaternion,
-                       std::shared_ptr<RigidBodyFrame> weld_to_frame = nullptr);
 
   /**
    * Adds a new model instance to this `RigidBodyTree`. The model instance is
@@ -163,7 +113,7 @@ class DRAKE_EXPORT RigidBodyTree {
 #endif
   int get_number_of_model_instances() const;
 
-  void addFrame(std::shared_ptr<RigidBodyFrame> frame);
+  void addFrame(std::shared_ptr<RigidBodyFrame<T>> frame);
 
   std::map<std::string, int> computePositionNameToIndexMap() const;
 
@@ -232,6 +182,52 @@ class DRAKE_EXPORT RigidBodyTree {
 
   void drawKinematicTree(std::string graphviz_dotfile_filename) const;
 
+  /// Creates a KinematicsCache to perform computations with this RigidBodyTree.
+  /// The returned KinematicsCache is consistently templated on the scalar type
+  /// for this RigidBodyTree instance.
+  /// Aborts if this RigidBodyTree was not previously initialized with a call
+  /// to RigidBodyTree::compile().
+  /// @returns The created KinematicsCache.
+  KinematicsCache<T> CreateKinematicsCache() const;
+
+  /// A helper template method used to create a KinematicsCache templated on
+  /// `CacheT` from a RigidBodyTree templated on `T`, with `CacheT` and `T`
+  /// not necessarily the same scalar type.
+  /// This method is particularly useful in mex files where only a reference
+  /// to a `RigidBodyTree<double>` is available to create kinematics caches
+  /// on different scalar types.
+  /// Aborts if this RigidBodyTree was not previously initialized with a call
+  /// to RigidBodyTree::compile().
+  ///
+  /// Users should not call this method but instead create KinematicsCache
+  /// objects with RigidBodyTree:CreateKinematicsCache().
+  ///
+  /// @tparam CacheT The scalar type for the returned KinematicsCache.
+  /// @returns A KinematicsCache templated on `CacheT` that can be used for
+  /// computations on this RigidBodyTree with methods instantiated on `CacheT`.
+  // TODO(amcastro-tri): Remove this method once older pieces of code such as
+  // createKinematicsCacheAutoDiffmex.cpp are updated to use a RigidBodyTree to
+  // manage cache creation.
+  template <typename CacheT>
+  KinematicsCache<CacheT> CreateKinematicsCacheWithType() const;
+
+  /// Creates a KinematicsCache given a reference to a vector of rigid bodies
+  /// contained within a RigidBodyTree.
+  /// This method is static since all the information to create the
+  /// corresponding KinematicsCache resides in the input parameter vector
+  /// `bodies`.
+  ///
+  /// @param bodies A vector of unique pointers to the rigid bodies of a given
+  /// RigidBodyTree for which a KinematicsCache needs to be created.
+  /// @returns The created KinematicsCache.
+  //
+  // TODO(amcastro-tri): Remove this method once older pieces of code such as
+  // KinematicsCacheHelper are updated to use a RigidBodyTree to manage cache
+  // creation.
+  static KinematicsCache<T>
+  CreateKinematicsCacheFromBodiesVector(
+      const std::vector<std::unique_ptr<RigidBody<T>>>& bodies);
+
   /// Initializes a `KinematicsCache` with the given configuration @p q,
   /// computes the kinematics, and returns the cache.
   ///
@@ -264,7 +260,8 @@ class DRAKE_EXPORT RigidBodyTree {
    * Returns true if @p body is part of a model instance whose ID is in
    * @p model_instance_id_set.
    */
-  bool is_part_of_model_instances(const RigidBody& body,
+  bool is_part_of_model_instances(
+      const RigidBody<T>& body,
       const std::set<int>& model_instance_id_set) const;
 
   /**
@@ -278,7 +275,7 @@ class DRAKE_EXPORT RigidBodyTree {
    * @p model_instance_id_set.
    */
   double getMass(const std::set<int>& model_instance_id_set =
-      default_model_instance_id_set) const;
+                     default_model_instance_id_set) const;
 
   template <typename Scalar>
   Eigen::Matrix<Scalar, drake::kSpaceDimension, 1> centerOfMass(
@@ -286,6 +283,59 @@ class DRAKE_EXPORT RigidBodyTree {
       KinematicsCache<Scalar>& cache,
       const std::set<int>& model_instance_id_set =
           default_model_instance_id_set) const;
+
+  /**
+   * Converts a matrix B, which transforms generalized velocities (v) to an
+   * output space X, to a matrix A, which transforms the time
+   * derivative of generalized coordinates (qdot) to the same output X. For
+   * example, B could be a Jacobian matrix that transforms generalized
+   * velocities to spatial velocities at the end-effector. Formally, this would
+   * be the matrix of partial derivatives of end-effector configuration computed
+   * with respect to quasi-coordinates (ꝗ). This function would allow
+   * transforming that Jacobian so that all partial derivatives would be
+   * computed with respect to qdot.
+   * @param Av, a `m x nv` sized matrix, where `nv` is the dimension of the
+   *      generalized velocities.
+   * @retval A a `m x nq` sized matrix, where `nq` is the dimension of the
+   *      generalized coordinates.
+   * @sa transformQDotMappingToVelocityMapping()
+   */
+  template <typename Derived>
+  static drake::MatrixX<typename Derived::Scalar>
+  transformVelocityMappingToQDotMapping(
+      const KinematicsCache<typename Derived::Scalar>& cache,
+      const Eigen::MatrixBase<Derived>& Av);
+
+  /**
+   * Converts a matrix A, which transforms the time derivative of generalized
+   * coordinates (qdot) to an output space X, to a matrix B, which transforms
+   * generalized velocities (v) to the same space X. For example, A could be a
+   * Jacobian matrix that transforms qdot to spatial velocities at the end
+   * effector. Formally, this would be the matrix of partial derivatives of
+   * end-effector configuration computed with respect to the generalized
+   * coordinates (q). This function would allow the user to
+   * transform this Jacobian matrix to the more commonly used one: the matrix of
+   * partial derivatives of end-effector configuration computed with respect to
+   * quasi-coordinates (ꝗ).
+   * @param Ap a `m x nq` sized matrix, where `nq` is the dimension of the
+   *      generalized coordinates.
+   * @retval B, a `m x nv` sized matrix, where `nv` is the dimension of the
+   *      generalized velocities.
+   * @sa transformVelocityMappingToQDotMapping()
+   */
+  template <typename Derived>
+  static drake::MatrixX<typename Derived::Scalar>
+  transformQDotMappingToVelocityMapping(
+      const KinematicsCache<typename Derived::Scalar>& cache,
+      const Eigen::MatrixBase<Derived>& Ap);
+
+  template <typename Scalar>
+  static drake::MatrixX<Scalar> GetVelocityToQDotMapping(
+          const KinematicsCache<Scalar>& cache);
+
+  template <typename Scalar>
+  static drake::MatrixX<Scalar> GetQDotToVelocityMapping(
+          const KinematicsCache<Scalar>& cache);
 
   template <typename Scalar>
   drake::TwistMatrix<Scalar> worldMomentumMatrix(
@@ -400,7 +450,7 @@ class DRAKE_EXPORT RigidBodyTree {
   /// Convenience alias for rigid body to external wrench map, for use with
   /// inverseDynamics and dynamicsBiasTerm.
   using BodyToWrenchMap = drake::eigen_aligned_std_unordered_map<
-    RigidBody const*, drake::WrenchVector<T>>;
+    RigidBody<double> const*, drake::WrenchVector<T>>;
 #endif
 
   /** \brief Compute the term \f$ C(q, v, f_\text{ext}) \f$ in the manipulator
@@ -418,7 +468,7 @@ class DRAKE_EXPORT RigidBodyTree {
       // TODO(#2274) Fix NOLINTNEXTLINE(runtime/references).
       KinematicsCache<Scalar>& cache,
       const drake::eigen_aligned_std_unordered_map<
-          RigidBody const*, drake::WrenchVector<Scalar>>& external_wrenches,
+          RigidBody<T> const*, drake::WrenchVector<Scalar>>& external_wrenches,
       bool include_velocity_terms = true) const;
 
   /** \brief Compute
@@ -453,7 +503,7 @@ class DRAKE_EXPORT RigidBodyTree {
       // TODO(#2274) Fix NOLINTNEXTLINE(runtime/references).
       KinematicsCache<Scalar>& cache,
       const drake::eigen_aligned_std_unordered_map<
-          RigidBody const*, drake::WrenchVector<Scalar>>& external_wrenches,
+          RigidBody<T> const*, drake::WrenchVector<Scalar>>& external_wrenches,
       const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& vd,
       bool include_velocity_terms = true) const;
 
@@ -590,7 +640,7 @@ class DRAKE_EXPORT RigidBodyTree {
   DrakeCollision::ElementId addCollisionElement(
       const DrakeCollision::Element& element,
       // TODO(#2274) Fix NOLINTNEXTLINE(runtime/references).
-      RigidBody& body,
+      RigidBody<T>& body,
       const std::string& group_name);
 
   template <class UnaryPredicate>
@@ -615,7 +665,7 @@ class DRAKE_EXPORT RigidBodyTree {
   }
 
   void updateCollisionElements(
-      const RigidBody& body,
+      const RigidBody<T>& body,
       const Eigen::Transform<double, 3, Eigen::Isometry>& transform_to_world);
 
   void updateStaticCollisionElements();
@@ -635,7 +685,7 @@ class DRAKE_EXPORT RigidBodyTree {
    *
    * @throws std::runtime_error if an invalid group name is given.
    */
-  void getTerrainContactPoints(const RigidBody& body,
+  void getTerrainContactPoints(const RigidBody<T>& body,
                                Eigen::Matrix3Xd* terrain_points,
                                const std::string& group_name = "") const;
 
@@ -819,9 +869,17 @@ class DRAKE_EXPORT RigidBodyTree {
    * @throws std::logic_error if multiple matching bodies are found or no
    * matching bodies are found.
    */
-  RigidBody* FindBody(const std::string& body_name,
+  RigidBody<T>* FindBody(const std::string& body_name,
                       const std::string& model_name = "",
                       int model_id = -1) const;
+
+  /**
+   * Reports the RigidBody that owns the collision element indicated by the id.
+   * @param element_id       The id to query.
+   * @return A pointer to the owning RigidBody.
+   * @throws std::logic_error if no body can be mapped to the element id.
+   */
+  const RigidBody<double>* FindBody(DrakeCollision::ElementId element_id) const;
 
   /**
    * Returns a vector of pointers to all rigid bodies in this tree that belong
@@ -833,7 +891,7 @@ class DRAKE_EXPORT RigidBodyTree {
    * @return A vector of pointers to every rigid body belonging to the sepcified
    * model instance.
    */
-  std::vector<const RigidBody*>
+  std::vector<const RigidBody<T>*>
   FindModelInstanceBodies(int model_instance_id) const;
 
 /**
@@ -843,7 +901,7 @@ class DRAKE_EXPORT RigidBodyTree {
 #ifndef SWIG
   DRAKE_DEPRECATED("Please use RigidBodyTree::FindBody().")
 #endif
-  RigidBody* findLink(const std::string& link_name,
+  RigidBody<T>* findLink(const std::string& link_name,
                       const std::string& model_name = "",
                       int model_id = -1) const;
 
@@ -874,8 +932,8 @@ class DRAKE_EXPORT RigidBodyTree {
    * @throws std::logic_error if no rigid body with the specified \p body_name
    * and \p model_id was found or if multiple matching rigid bodies were found.
    */
-  int FindBodyIndex(const std::string& body_name, int model_instance_id = -1)
-      const;
+  int FindBodyIndex(const std::string& body_name,
+                    int model_instance_id = -1) const;
 
   /**
    * Returns a vector of indexes of bodies that are the children of the body at
@@ -886,12 +944,12 @@ class DRAKE_EXPORT RigidBodyTree {
    * RigidBodyTree::get_num_bodies().
    */
   std::vector<int> FindChildrenOfBody(int parent_body_index,
-      int model_instance_id = -1) const;
+                                      int model_instance_id = -1) const;
 
-  /**
-   * This is a deprecated version of `FindBodyIndex(...)`. Please use
-   * `FindBodyIndex(...)` instead.
-   */
+/**
+ * This is a deprecated version of `FindBodyIndex(...)`. Please use
+ * `FindBodyIndex(...)` instead.
+ */
 #ifndef SWIG
   DRAKE_DEPRECATED("Please use RigidBodyTree::FindBodyIndex().")
 #endif
@@ -917,13 +975,14 @@ class DRAKE_EXPORT RigidBodyTree {
    * @throws std::runtime_error If either no rigid body is found or multiple
    * matching rigid bodies are found.
    */
-  RigidBody* FindChildBodyOfJoint(const std::string& joint_name,
-      int model_instance_id = -1) const;
+  RigidBody<T>* FindChildBodyOfJoint(const std::string& joint_name,
+                                     int model_instance_id = -1) const;
 
 #ifndef SWIG
   DRAKE_DEPRECATED("Please use FindChildBodyOfJoint().")
 #endif
-  RigidBody* findJoint(const std::string& joint_name, int model_id = -1) const;
+  RigidBody<T>* findJoint(
+          const std::string& joint_name, int model_id = -1) const;
 
   /**
    * Returns the index within the vector of rigid bodies of the rigid body whose
@@ -947,7 +1006,7 @@ class DRAKE_EXPORT RigidBodyTree {
    * matching rigid bodies are found.
    */
   int FindIndexOfChildBodyOfJoint(const std::string& joint_name,
-      int model_instance_id = -1) const;
+                                  int model_instance_id = -1) const;
 
 #ifndef SWIG
   DRAKE_DEPRECATED("Please use FindIndexOfChildBodyOfJoint().")
@@ -963,7 +1022,7 @@ class DRAKE_EXPORT RigidBodyTree {
    * value is -1, search all models.
    * @throws std::logic_error if multiple matching frames are found.
    */
-  std::shared_ptr<RigidBodyFrame> findFrame(const std::string& frame_name,
+  std::shared_ptr<RigidBodyFrame<T>> findFrame(const std::string& frame_name,
                                             int model_id = -1) const;
 
   /**
@@ -972,7 +1031,7 @@ class DRAKE_EXPORT RigidBodyTree {
    * by calling RigidBodyTree::get_num_bodies(). Note that the body at
    * index 0 represents the world.
    */
-  const RigidBody& get_body(int body_index) const;
+  const RigidBody<T>& get_body(int body_index) const;
 
   /**
    * Returns the number of bodies in this tree. This includes the one body that
@@ -1035,17 +1094,17 @@ class DRAKE_EXPORT RigidBodyTree {
      */
     int ncols = in_terms_of_qdot ? num_positions_ : num_velocities_;
     Eigen::Matrix<typename Derived::Scalar, Derived::RowsAtCompileTime,
-                  Eigen::Dynamic> full(compact.rows(), ncols);
+                  Eigen::Dynamic>
+        full(compact.rows(), ncols);
     full.setZero();
     int compact_col_start = 0;
     for (std::vector<int>::const_iterator it = joint_path.begin();
          it != joint_path.end(); ++it) {
-      RigidBody& body = *bodies[*it];
+      RigidBody<T>& body = *bodies[*it];
       int ncols_joint = in_terms_of_qdot ? body.getJoint().get_num_positions()
                                          : body.getJoint().get_num_velocities();
-      int col_start =
-          in_terms_of_qdot ? body.get_position_start_index() :
-              body.get_velocity_start_index();
+      int col_start = in_terms_of_qdot ? body.get_position_start_index()
+                                       : body.get_velocity_start_index();
       full.middleCols(col_start, ncols_joint) =
           compact.middleCols(compact_col_start, ncols_joint);
       compact_col_start += ncols_joint;
@@ -1056,8 +1115,7 @@ class DRAKE_EXPORT RigidBodyTree {
   /**
    * A toString method for this class.
    */
-  friend DRAKE_EXPORT std::ostream& operator<<(std::ostream&,
-                                               const RigidBodyTree<double>&);
+  friend std::ostream& operator<<(std::ostream&, const RigidBodyTree<double>&);
 
   /**
    * @brief Adds and takes ownership of a rigid body.
@@ -1070,23 +1128,22 @@ class DRAKE_EXPORT RigidBodyTree {
    * @param[in] body The rigid body to add to this rigid body tree.
    * @return A bare, unowned pointer to the @p body.
    */
-  RigidBody* add_rigid_body(std::unique_ptr<RigidBody> body);
+  RigidBody<T>* add_rigid_body(std::unique_ptr<RigidBody<T>> body);
 
   /**
    * @brief Returns a mutable reference to the RigidBody associated with the
    * world in the model. This is the root of the RigidBodyTree.
    */
-  RigidBody& world() { return *bodies[0]; }
+  RigidBody<T>& world() { return *bodies[0]; }
 
   /**
    * @brief Returns a const reference to the RigidBody associated with the
    * world in the model. This is the root of the RigidBodyTree.
    */
-  const RigidBody& world() const { return *bodies[0]; }
+  const RigidBody<T>& world() const { return *bodies[0]; }
 
   /**
-   * An accessor to the number of position states outputted by this rigid body
-   * system.
+   * Returns the number of position states outputted by this %RigidBodyTree.
    */
   int get_num_positions() const;
 
@@ -1096,16 +1153,19 @@ class DRAKE_EXPORT RigidBodyTree {
   int number_of_positions() const;
 
   /**
-   * An accessor to the number of velocity states outputted by this rigid body
-   * system.
+   * Returns the number of velocity states outputted by this %RigidBodyTree.
    */
   int get_num_velocities() const;
-
 
 #ifndef SWIG
   DRAKE_DEPRECATED("Please use get_num_velocities().")
 #endif
   int number_of_velocities() const;
+
+  /**
+   * Returns the number of actuators in this %RigidBodyTree.
+   */
+  int get_num_actuators() const;
 
  public:
   static const std::set<int> default_model_instance_id_set;
@@ -1117,17 +1177,18 @@ class DRAKE_EXPORT RigidBodyTree {
   // TODO(amcastro-tri): make private and start using accessors body(int).
   // TODO(amcastro-tri): rename to bodies_ to follow Google's style guide once.
   // accessors are used throughout the code.
-  std::vector<std::unique_ptr<RigidBody>> bodies;
+  std::vector<std::unique_ptr<RigidBody<T>>> bodies;
 
   // Rigid body frames
-  std::vector<std::shared_ptr<RigidBodyFrame>> frames;
+  std::vector<std::shared_ptr<RigidBodyFrame<T>>> frames;
 
   // Rigid body actuators
   std::vector<RigidBodyActuator, Eigen::aligned_allocator<RigidBodyActuator>>
       actuators;
 
   // Rigid body loops
-  std::vector<RigidBodyLoop, Eigen::aligned_allocator<RigidBodyLoop>> loops;
+  std::vector<RigidBodyLoop<T>,
+              Eigen::aligned_allocator<RigidBodyLoop<T>>> loops;
 
   drake::TwistVector<double> a_grav;
   Eigen::MatrixXd B;  // the B matrix maps inputs into joint-space forces
@@ -1190,9 +1251,6 @@ class DRAKE_EXPORT RigidBodyTree {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 #endif
 
-  // The following was required for building w/ DRAKE_EXPORT on windows (due
-  // to the unique_ptrs).  See
-  // http://stackoverflow.com/questions/8716824/cannot-access-private-member-error-only-when-class-has-export-linkage
  private:
   RigidBodyTree(const RigidBodyTree&);
   RigidBodyTree& operator=(const RigidBodyTree&) { return *this; }

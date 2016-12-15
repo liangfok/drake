@@ -39,7 +39,7 @@ GTEST_TEST(RigidBodySystemTest, TestLoadURDFWorld) {
   // correct model name.
   for (auto& body_name :
        {"floor", "ramp_1", "ramp_2", "box_1", "box_2", "box_3", "box_4"}) {
-    RigidBody* body = tree->FindBody(body_name);
+    RigidBody<double>* body = tree->FindBody(body_name);
     EXPECT_NE(body, nullptr);
     EXPECT_EQ(body->get_model_name(), "dual_ramps");
   }
@@ -69,8 +69,8 @@ GTEST_TEST(RigidBodySystemTest, TestLoadSDFMultipleTimes) {
         << drake::math::rpy2rotmat(rpy), xyz, 0, 0, 0, 1;
   }
 
-  auto weld_to_frame = std::allocate_shared<RigidBodyFrame>(
-      Eigen::aligned_allocator<RigidBodyFrame>(), "world", nullptr,
+  auto weld_to_frame = std::allocate_shared<RigidBodyFrame<double>>(
+      Eigen::aligned_allocator<RigidBodyFrame<double>>(), "world", nullptr,
       T_second_model_to_world);
 
   rigid_body_sys->AddModelInstanceFromFile(

@@ -26,7 +26,7 @@ using DrakeShapes::Mesh;
 using DrakeShapes::Sphere;
 
 // Verifies that @p message is correct.
-void VerifyLoadMessage(const drake::lcmt_viewer_load_robot& message) {
+void VerifyLoadMessage(const std::vector<uint8_t>& message_bytes) {
   // Instantiates the expected message.
   drake::lcmt_viewer_load_robot expected_message;
   expected_message.num_links = 6;
@@ -184,15 +184,12 @@ void VerifyLoadMessage(const drake::lcmt_viewer_load_robot& message) {
   }
 
   // Ensures both messages have the same length.
-  EXPECT_EQ(expected_message.getEncodedSize(), message.getEncodedSize());
+  EXPECT_EQ(expected_message.getEncodedSize(), message_bytes.size());
   int byte_count = expected_message.getEncodedSize();
 
-  // Serializes both messages.
+  // Serialize the expected message.
   std::vector<uint8_t> expected_message_bytes(byte_count);
   expected_message.encode(expected_message_bytes.data(), 0, byte_count);
-
-  std::vector<uint8_t> message_bytes(byte_count);
-  message.encode(message_bytes.data(), 0, byte_count);
 
   // Verifies that the messages are equal.
   EXPECT_EQ(expected_message_bytes, message_bytes);
@@ -293,7 +290,7 @@ unique_ptr<RigidBodyTree<double>> CreateRigidBodyTree() {
   // Adds a RigidBody that looks like a box to the tree to achieve some level
   // of unit test coverage for the box geometry.
   {
-    auto body = make_unique<RigidBody>();
+    auto body = make_unique<RigidBody<double>>();
     body->set_name("box_body");
     body->set_model_instance_id(tree->add_model_instance());
     body->set_mass(1.0);
@@ -326,7 +323,7 @@ unique_ptr<RigidBodyTree<double>> CreateRigidBodyTree() {
   // Adds a RigidBody that looks like a capsule to the tree to achieve some
   // level of unit test coverage for the box geometry.
   {
-    auto body = make_unique<RigidBody>();
+    auto body = make_unique<RigidBody<double>>();
     body->set_name("capsule_body");
     body->set_model_instance_id(tree->add_model_instance());
     body->set_mass(1.0);
@@ -358,7 +355,7 @@ unique_ptr<RigidBodyTree<double>> CreateRigidBodyTree() {
   // Adds a RigidBody that looks like a cylinder to the tree to achieve some
   // level of unit test coverage for the cylinder geometry.
   {
-    auto body = make_unique<RigidBody>();
+    auto body = make_unique<RigidBody<double>>();
     body->set_name("cylinder_body");
     body->set_model_instance_id(tree->add_model_instance());
     body->set_mass(1.0);
@@ -391,7 +388,7 @@ unique_ptr<RigidBodyTree<double>> CreateRigidBodyTree() {
   // level of unit test coverage for the mesh geometry. The mesh is specified
   // by an OBJ file.
   {
-    auto body = make_unique<RigidBody>();
+    auto body = make_unique<RigidBody<double>>();
     body->set_name("mesh_body");
     body->set_model_instance_id(tree->add_model_instance());
     body->set_mass(1.0);
@@ -425,7 +422,7 @@ unique_ptr<RigidBodyTree<double>> CreateRigidBodyTree() {
   // Adds a RigidBody that looks like a sphere to the tree to achieve some
   // level of unit test coverage for the sphere geometry.
   {
-    auto body = make_unique<RigidBody>();
+    auto body = make_unique<RigidBody<double>>();
     body->set_name("sphere_body");
     body->set_model_instance_id(tree->add_model_instance());
     body->set_mass(1.0);
@@ -488,10 +485,8 @@ GTEST_TEST(DrakeVisualizerTests, BasicTest) {
   dut.Publish(*context.get());
 
   // Verifies that the correct messages were actually transmitted.
-  // TODO(liang.fok) Update the following tests to obtain the last published
-  // message from the mock LCM object.
-  VerifyLoadMessage(dut.get_load_message());
-  VerifyDrawMessage(dut.get_draw_message_bytes());
+  VerifyLoadMessage(lcm.get_last_published_message("DRAKE_VIEWER_LOAD_ROBOT"));
+  VerifyDrawMessage(lcm.get_last_published_message("DRAKE_VIEWER_DRAW"));
 }
 
 }  // namespace

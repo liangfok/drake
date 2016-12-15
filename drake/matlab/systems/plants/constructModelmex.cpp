@@ -79,7 +79,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     // DEBUG
     // mexPrintf("constructModelmex: body %d\n", i);
     // END_DEBUG
-    std::unique_ptr<RigidBody> b(new RigidBody());
+    std::unique_ptr<RigidBody<double>> b(new RigidBody<double>());
     b->set_body_index(i);
 
     b->set_name(mxGetStdString(mxGetPropertySafe(pBodies, i, "linkname")));
@@ -383,7 +383,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
   // mexPrintf("constructModelmex: Parsing frames\n");
   // END_DEBUG
   for (int i = 0; i < num_frames; i++) {
-    shared_ptr<RigidBodyFrame> fr(new RigidBodyFrame());
+    shared_ptr<RigidBodyFrame<double>> fr(new RigidBodyFrame<double>());
 
     fr->set_name(mxGetStdString(mxGetPropertySafe(pFrames, i, "name")));
 
@@ -436,8 +436,8 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     //    cout << "loop " << i << ": frame_A = " <<
     //    model->frames[frame_A_ind]->name << ", frame_B = " <<
     //    model->frames[frame_B_ind]->name << endl;
-    model->loops.push_back(RigidBodyLoop(model->frames[frame_A_ind],
-                                         model->frames[frame_B_ind], axis));
+    model->loops.push_back(RigidBodyLoop<double>(
+        model->frames[frame_A_ind], model->frames[frame_B_ind], axis));
   }
 
   // ACTUATORS

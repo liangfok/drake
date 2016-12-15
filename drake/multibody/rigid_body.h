@@ -12,11 +12,11 @@
 #include "drake/common/drake_assert.h"
 #include "drake/common/drake_deprecated.h"
 #include "drake/common/eigen_types.h"
-#include "drake/common/drake_export.h"
 #include "drake/multibody/collision/drake_collision.h"
 #include "drake/multibody/joints/drake_joint.h"
 
-class DRAKE_EXPORT RigidBody {
+template <typename T>
+class RigidBody {
  public:
   RigidBody();
 
@@ -139,11 +139,12 @@ class DRAKE_EXPORT RigidBody {
     return parent_ == &other;
   }
 
-  /**
-   * Sets the "body index" of this `RigidBody`. The "body index" is the index of
-   * this `RigidBody` within the vector of `RigidBody` objects within the
-   * `RigidBodyTree`.
-   */
+
+  /// Sets the "body index" of this `RigidBody`. The "body index" is the
+  /// index of this `RigidBody` within the vector of `RigidBody` objects
+  /// within the `RigidBodyTree`.
+  /// Users should NOT call this method. It is only here to be used
+  /// internally by RigidBodyTree.
   void set_body_index(int body_index);
 
   /**
@@ -363,8 +364,8 @@ class DRAKE_EXPORT RigidBody {
   void AddCollisionElementsToClique(int clique_id);
 
  public:
-  DRAKE_EXPORT friend std::ostream& operator<<(
-      std::ostream& out, const RigidBody& b);
+  friend std::ostream& operator<<(
+      std::ostream& out, const RigidBody<double>& b);
 
  public:
 #ifndef SWIG
