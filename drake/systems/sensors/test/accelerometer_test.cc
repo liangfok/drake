@@ -37,9 +37,10 @@ GTEST_TEST(TestAccelerometer, AccessorsAndToStringTest) {
   RigidBodyFrame<double> frame("foo frame", &tree->world(),
                                Eigen::Isometry3d::Identity());
   RigidBodyPlant<double> plant(move(tree));
+  unique_ptr<Context<double>> plant_context = plant.CreateDefaultContext();
 
   // Defines the Device Under Test (DUT).
-  Accelerometer dut(kSensorName, plant, frame);
+  Accelerometer dut(kSensorName, plant, *plant_context, frame);
 
   stringstream string_buffer;
   string_buffer << dut;
@@ -71,13 +72,18 @@ GTEST_TEST(TestAccelerometer, TestFreeFall) {
   tree->addFrame(frame);
 
   RigidBodyPlant<double> plant(move(tree));
+  ASSERT_EQ(plant.get_num_input_ports(), 1);
+   // The plant's rigid body tree contains no actuators.
+  EXPECT_EQ(plant.get_input_port(0).size(), 0);
+
+  unique_ptr<Context<double>> plant_context = plant.CreateDefaultContext();
 
   // Defines the Device Under Test (DUT).
-  Accelerometer dut(kSensorName, plant, *frame);
+  Accelerometer dut(kSensorName, plant, *plant_context, *frame);
 
-  unique_ptr<Context<double>> context = dut.CreateDefaultContext();
-  EXPECT_EQ(context->get_num_input_ports(), 1);
-  EXPECT_EQ(context->get_continuous_state_vector().size(), 0);
+  unique_ptr<Context<double>> dut_context = dut.CreateDefaultContext();
+  EXPECT_EQ(dut_context->get_num_input_ports(), 1);
+  EXPECT_EQ(dut_context->get_continuous_state_vector().size(), 0);
 
   const int num_states =
       plant.model_state_output_port(model_instance_id).size();
@@ -90,7 +96,7 @@ GTEST_TEST(TestAccelerometer, TestFreeFall) {
   EXPECT_EQ(num_positions, 7);
   EXPECT_EQ(num_velocities, 6);
 
-  context->FixInputPort(
+  dut_context->FixInputPort(
       0, BasicVector<double>::Make({0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}));
 
   auto xc_vector = make_unique<BasicVector<double>>(
@@ -98,11 +104,12 @@ GTEST_TEST(TestAccelerometer, TestFreeFall) {
   auto xc = make_unique<ContinuousState<double>>(move(xc_vector), num_positions,
                                                  num_velocities,
                                                  0 /* num other variables */);
-  context->set_continuous_state(move(xc));
 
-  unique_ptr<SystemOutput<double>> output = dut.AllocateOutput(*context);
+  dut_context->set_continuous_state(move(xc));
+
+  unique_ptr<SystemOutput<double>> output = dut.AllocateOutput(*dut_context);
   ASSERT_EQ(output->get_num_ports(), 1);
-  dut.CalcOutput(*context, output.get());
+  dut.CalcOutput(*dut_context, output.get());
 
   const Vector3d expected_acceleration(0, 0, 9.81);
   EXPECT_TRUE(CompareMatrices(output->get_vector_data(0)->get_value(),

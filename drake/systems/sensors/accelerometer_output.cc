@@ -14,9 +14,20 @@ AccelerometerOutput<T>::AccelerometerOutput()
   this->SetFromVector(VectorX<double>::Zero(Accelerometer::kNumMeasurements));
 }
 
-// template <typename T>
-// double ImuSensorOutput<T>::GetAccelerationX() const {
-// }
+template <typename T>
+const T& AccelerometerOutput<T>::get_accel_x() const {
+  return BasicVector<T>::GetAtIndex(0);
+}
+
+template <typename T>
+const T& AccelerometerOutput<T>::get_accel_y() const {
+  return BasicVector<T>::GetAtIndex(1);
+}
+
+template <typename T>
+const T& AccelerometerOutput<T>::get_accel_z() const {
+  return BasicVector<T>::GetAtIndex(2);
+}
 
 template class AccelerometerOutput<double>;
 

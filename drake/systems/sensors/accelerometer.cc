@@ -21,10 +21,12 @@ constexpr int Accelerometer::kNumMeasurements;
 
 Accelerometer::Accelerometer(const std::string& name,
                              const RigidBodyPlant<double>& plant,
+                             const Context<double>& plant_context,
                              const RigidBodyFrame<double>& frame,
                              bool include_gravity_compensation)
     : name_(name),
       plant_(plant),
+      plant_context_(plant_context),
       frame_(frame),
       include_gravity_compensation_(include_gravity_compensation) {
   input_port_index_ =
@@ -53,7 +55,7 @@ void Accelerometer::DoCalcOutput(const systems::Context<double>& context,
   // this computes the velocity and acceleration state.
   std::unique_ptr<ContinuousState<double>> derivatives =
       plant_.AllocateTimeDerivatives();
-  plant_.CalcTimeDerivatives(context, derivatives.get());
+  plant_.CalcTimeDerivatives(plant_context_, derivatives.get());
   const auto xdot = derivatives->CopyToVector();
   const auto vdot = xdot.bottomRows(get_tree().get_num_velocities());
 
@@ -77,17 +79,21 @@ void Accelerometer::DoCalcOutput(const systems::Context<double>& context,
   // The sensor's frame coincides with frame_'s origin.
   const Vector3d sensor_origin = Vector3d::Zero();
 
+
   const auto J = get_tree().transformPointsJacobian(
       kinematics_cache, sensor_origin, frame_.get_frame_index(),
       RigidBodyTree<double>::kWorldBodyIndex, false /* in_terms_of_qdot */);
+
 
   const auto Jdot_times_v = get_tree().transformPointsJacobianDotTimesV(
       kinematics_cache, sensor_origin, frame_.get_frame_index(),
       RigidBodyTree<double>::kWorldBodyIndex);
 
+
   const Vector4d quat_world_to_body = get_tree().relativeQuaternion(
       kinematics_cache, RigidBodyTree<double>::kWorldBodyIndex,
       frame_.get_frame_index());
+
 
   const Vector3d accel_base = Jdot_times_v + J * vdot;
   Vector3d accel_body = quatRotateVec(quat_world_to_body, accel_base);
@@ -97,9 +103,11 @@ void Accelerometer::DoCalcOutput(const systems::Context<double>& context,
     accel_body += quatRotateVec(quat_world_to_body, gravity);
   }
 
+
   // Saves the acceleration readings into the output port.
   BasicVector<double>* output_vector =
       output->GetMutableVectorData(output_port_index_);
+
   output_vector->SetFromVector(accel_body);
 }
 

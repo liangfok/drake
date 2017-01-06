@@ -16,8 +16,14 @@ class AccelerometerOutput : public BasicVector<T> {
 
   /// @name Getters and Setters
   //@{
-  /// TODO
-  // double GetAcceleration() const;
+  /// Returns the X-component of the linear acceleration in the sensor's frame.
+  const T& get_accel_x() const;
+
+  /// Returns the Y-component of the linear acceleration in the sensor's frame.
+  const T& get_accel_y() const;
+
+  /// Returns the Z-component of the linear acceleration in the sensor's frame.
+  const T& get_accel_z() const;
   //@}
 };
 

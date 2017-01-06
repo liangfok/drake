@@ -38,6 +38,11 @@ class Accelerometer : public systems::LeafSystem<double> {
   /// sensor is attached. This parameter is aliased by a class member variable
   /// so its lifespan must exceed that of this class' instance.
   ///
+  /// @param[in] plant_context The context of the RigidBodyPlant. This is
+  /// necessary to model the generalized forces that are being commanded of the
+  /// actuators within the plant's RigidBodyTree. The lifespan of this
+  /// reference must exceed that of this class' instance.
+  ///
   /// @param[in] frame The frame to which this accelerometer is attached. A copy
   /// of this frame is stored as a class member variable.
   ///
@@ -45,8 +50,8 @@ class Accelerometer : public systems::LeafSystem<double> {
   //  accleration due to gravity in the sensor's reading.
   ///
   Accelerometer(const std::string& name, const RigidBodyPlant<double>& plant,
-                const RigidBodyFrame<double>& frame,
-                bool include_gravity_compensation = true);
+    const Context<double>& plant_context, const RigidBodyFrame<double>& frame,
+    bool include_gravity_compensation = true);
 
   // Non-copyable.
   /// @name Deleted Copy/Move Operations
@@ -100,6 +105,7 @@ class Accelerometer : public systems::LeafSystem<double> {
  private:
   const std::string name_;
   const RigidBodyPlant<double>& plant_;
+  const Context<double>& plant_context_;
   const RigidBodyFrame<double> frame_;
   const bool include_gravity_compensation_{};
 
