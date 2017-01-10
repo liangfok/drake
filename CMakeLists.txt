@@ -149,7 +149,9 @@ drake_add_external(octomap PUBLIC CMAKE
 
 # fcl
 drake_add_external(fcl PUBLIC CMAKE
-  CMAKE_ARGS -DFCL_BUILD_TESTS=OFF
+  CMAKE_ARGS
+      -DFCL_BUILD_TESTS=OFF
+      -Doctomap_DIR:PATH=${CMAKE_INSTALL_PREFIX}/share/octomap
   DEPENDS ccd eigen octomap)
 
 # swig_matlab
