@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "drake/automotive/car_vis_applicator.h"
@@ -130,12 +131,15 @@ class AutomotiveSimulator {
   /// maliput::api::RoadGeometry that is added via SetRoadGeometry(). Otherwise
   /// a std::runtime_error will be thrown.
   ///
+  /// @param params The MaliputRailcar's parameters.
+  ///
   /// @param initial_state The MaliputRailcar's initial state.
   ///
   /// @return The ID of the car that was just added to the simulation.
-  int AddPriusMaliputRailCar(
+  int AddPriusMaliputRailcar(
       const std::string& model_name,
       const LaneDirection& initial_lane_direction,
+      const MaliputRailcarParams<T>& params = MaliputRailcarParams<T>(),
       const MaliputRailcarState<T>& initial_state = MaliputRailcarState<T>());
 
   /// Sets the acceleration command of a particular MaliputRailcar.
@@ -219,6 +223,10 @@ class AutomotiveSimulator {
 
   // Adds an LCM publisher for the given @p system.
   // @pre Start() has NOT been called.
+  void AddPublisher(const MaliputRailcar<T>& system, int vehicle_number);
+
+  // Adds an LCM publisher for the given @p system.
+  // @pre Start() has NOT been called.
   void AddPublisher(const SimpleCar<T>& system, int vehicle_number);
 
   // Adds an LCM publisher for the given @p system.
@@ -250,6 +258,10 @@ class AutomotiveSimulator {
 
   void SendLoadRobotMessage(const lcmt_viewer_load_robot& message);
 
+  void InitializeSimpleCars();
+  void InitializeEndlessRoadcars();
+  void InitializeMaliputRailcars();
+
   // For both building and simulation.
   std::unique_ptr<lcm::DrakeLcmInterface> lcm_{};
   std::unique_ptr<const maliput::api::RoadGeometry> road_{};
@@ -273,8 +285,9 @@ class AutomotiveSimulator {
 
   // Holds the desired initial states of each MaliputRailcar. It is used to
   // initialize the simulation's diagram's state.
-  std::map<const MaliputRailcar<T>*, MaliputRailcarState<T>>
-      railcar_initial_states_;
+  std::map<const MaliputRailcar<T>*, std::pair<MaliputRailcarParams<T>,
+                                               MaliputRailcarState<T>>>
+      railcar_configs_;
 
   // === End for building. ===
 

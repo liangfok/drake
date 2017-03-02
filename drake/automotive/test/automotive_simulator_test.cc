@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "drake/automotive/curve2.h"
-#include "drake/automotive/maliput_railcar.h"
+#include "drake/automotive/lane_direction.h"
 #include "drake/automotive/maliput/dragway/road_geometry.h"
 #include "drake/automotive/prius_vis.h"
 #include "drake/common/drake_path.h"
@@ -19,10 +19,6 @@
 #include "drake/systems/lcm/lcmt_drake_signal_translator.h"
 
 namespace drake {
-
-using systems::BasicVector;
-using systems::Context;
-
 namespace automotive {
 namespace {
 
@@ -301,8 +297,12 @@ GTEST_TEST(AutomotiveSimulatorTest, TestMaliputRailcar) {
   lcm::DrakeMockLcm* lcm =
       dynamic_cast<lcm::DrakeMockLcm*>(simulator->get_lcm());
   ASSERT_NE(lcm, nullptr);
+  const double kR{0.5};
+  MaliputRailcarParams<double> params;
+  params.set_r(kR);
 
-  EXPECT_THROW(simulator->AddPriusMaliputRailCar("foo", LaneDirection()),
+  EXPECT_THROW(
+      simulator->AddPriusMaliputRailcar("foo", LaneDirection()),
       std::runtime_error);
 
   const maliput::api::RoadGeometry* road{};
@@ -311,7 +311,8 @@ GTEST_TEST(AutomotiveSimulatorTest, TestMaliputRailcar) {
           maliput::api::RoadGeometryId({"TestDragway"}), 1 /* num lanes */,
           100 /* length */, 4 /* lane width */, 1 /* shoulder width */)));
 
-  EXPECT_THROW(simulator->AddPriusMaliputRailCar("bar", LaneDirection()),
+  EXPECT_THROW(
+      simulator->AddPriusMaliputRailcar("bar", LaneDirection(), params),
       std::runtime_error);
 
   const auto different_road =
@@ -319,12 +320,12 @@ GTEST_TEST(AutomotiveSimulatorTest, TestMaliputRailcar) {
           maliput::api::RoadGeometryId({"DifferentDragway"}), 2 /* num lanes */,
           50 /* length */, 3 /* lane width */, 2 /* shoulder width */);
 
-  EXPECT_THROW(simulator->AddPriusMaliputRailCar("bar",
-      LaneDirection(different_road->junction(0)->segment(0)->lane(0))),
+  EXPECT_THROW(simulator->AddPriusMaliputRailcar("bar",
+      LaneDirection(different_road->junction(0)->segment(0)->lane(0)), params),
       std::runtime_error);
 
-  const int id = simulator->AddPriusMaliputRailCar("model_name",
-      LaneDirection(road->junction(0)->segment(0)->lane(0)),
+  const int id = simulator->AddPriusMaliputRailcar("model_name",
+      LaneDirection(road->junction(0)->segment(0)->lane(0)), params,
       MaliputRailcarState<double>() /* initial state */);
   EXPECT_EQ(id, 0);
 
@@ -333,8 +334,7 @@ GTEST_TEST(AutomotiveSimulatorTest, TestMaliputRailcar) {
   // Sets the commanded acceleration to be zero.
   simulator->SetMaliputRailcarAccelerationCommand(id, 0);
 
-  // Take two simulation steps to trigger the publishing of an LCM draw
-  // message.
+  // Take two simulation steps to trigger the publishing of an LCM draw message.
   simulator->StepBy(0.005);
   simulator->StepBy(0.005);
 
@@ -346,6 +346,7 @@ GTEST_TEST(AutomotiveSimulatorTest, TestMaliputRailcar) {
   EXPECT_EQ(draw_message1.link_name.at(0), "chassis_floor");
   EXPECT_NEAR(draw_message1.position.at(0).at(0), PriusVis<double>::kVisOffset,
       1e-4);  // This tolerance was determined empirically.
+  EXPECT_DOUBLE_EQ(draw_message1.position.at(0).at(1), kR);
 
   // Sets the commanded acceleration to be 10 m/s^2.
   simulator->SetMaliputRailcarAccelerationCommand(id, 10);

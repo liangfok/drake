@@ -6,6 +6,7 @@
 #include "drake/automotive/gen/driving_command_translator.h"
 #include "drake/automotive/gen/endless_road_car_state_translator.h"
 #include "drake/automotive/gen/euler_floating_joint_state_translator.h"
+#include "drake/automotive/gen/maliput_railcar_state_translator.h"
 #include "drake/automotive/gen/simple_car_state_translator.h"
 #include "drake/automotive/maliput/api/lane.h"
 #include "drake/automotive/maliput/utility/generate_urdf.h"
@@ -24,12 +25,10 @@
 
 namespace drake {
 
-using maliput::api::Junction;
 using maliput::api::Lane;
 using maliput::api::LaneEnd;
 using maliput::api::RoadGeometry;
 using maliput::api::RoadGeometryId;
-using maliput::api::Segment;
 using multibody::joints::kRollPitchYaw;
 using systems::lcm::LcmPublisherSystem;
 
@@ -61,6 +60,10 @@ systems::DiagramBuilder<T>* AutomotiveSimulator<T>::get_builder() {
   DRAKE_DEMAND(!has_started());
   return builder_.get();
 }
+
+// TODO(jwnimmer-tri): Modify the various vehicle model systems to be more
+// uniform so common code from the following AddFooCar() methods can be moved
+// into a shared method.
 
 template <typename T>
 int AutomotiveSimulator<T>::AddPriusSimpleCar(
@@ -172,24 +175,25 @@ int AutomotiveSimulator<T>::AddPriusEndlessRoadCar(
 }
 
 template <typename T>
-int AutomotiveSimulator<T>::AddPriusMaliputRailCar(
+int AutomotiveSimulator<T>::AddPriusMaliputRailcar(
     const std::string& model_name,
     const LaneDirection& initial_lane_direction,
+    const MaliputRailcarParams<T>& params,
     const MaliputRailcarState<T>& initial_state) {
   DRAKE_DEMAND(!has_started());
   DRAKE_DEMAND(aggregator_ != nullptr);
   if (road_ == nullptr) {
-    throw std::runtime_error("AutomotiveSimulator::AddPriusMaliputRailCar(): "
+    throw std::runtime_error("AutomotiveSimulator::AddPriusMaliputRailcar(): "
         "RoadGeometry not set. Please call SetRoadGeometry() first before "
         "calling this method.");
   }
   if (initial_lane_direction.lane == nullptr) {
-    throw std::runtime_error("AutomotiveSimulator::AddPriusMaliputRailCar(): "
+    throw std::runtime_error("AutomotiveSimulator::AddPriusMaliputRailcar(): "
         "The provided initial lane is nullptr.");
   }
   if (initial_lane_direction.lane->segment()->junction()->road_geometry() !=
       road_.get()) {
-    throw std::runtime_error("AutomotiveSimulator::AddPriusMaliputRailCar(): "
+    throw std::runtime_error("AutomotiveSimulator::AddPriusMaliputRailcar(): "
         "The provided initial lane is not within this simulation's "
         "RoadGeometry.");
   }
@@ -199,7 +203,8 @@ int AutomotiveSimulator<T>::AddPriusMaliputRailCar(
   auto railcar =
       builder_->template AddSystem<MaliputRailcar<T>>(initial_lane_direction);
   vehicles_[id] = railcar;
-  railcar_initial_states_[railcar].set_value(initial_state.get_value());
+  railcar_configs_[railcar].first.set_value(params.get_value());
+  railcar_configs_[railcar].second.set_value(initial_state.get_value());
 
   const auto& descriptor = aggregator_->AddSingleInput(model_name, id);
   builder_->Connect(railcar->pose_output(),
@@ -271,6 +276,18 @@ void AutomotiveSimulator<T>::GenerateAndLoadRoadNetworkUrdf() {
 }
 
 template <typename T>
+void AutomotiveSimulator<T>::AddPublisher(const MaliputRailcar<T>& system,
+                                          int vehicle_number) {
+  DRAKE_DEMAND(!has_started());
+  static const MaliputRailcarStateTranslator translator;
+  auto publisher =
+      builder_->template AddSystem<systems::lcm::LcmPublisherSystem>(
+          std::to_string(vehicle_number) + "_MALIPUT_RAILCAR_STATE", translator,
+          lcm_.get());
+  builder_->Connect(system.state_output(), publisher->get_input_port(0));
+}
+
+template <typename T>
 void AutomotiveSimulator<T>::AddPublisher(const SimpleCar<T>& system,
                                           int vehicle_number) {
   DRAKE_DEMAND(!has_started());
@@ -305,6 +322,10 @@ void AutomotiveSimulator<T>::AddPublisher(const EndlessRoadCar<T>& system,
           translator, lcm_.get());
   builder_->Connect(system, *publisher);
 }
+
+// TODO(liang.fok) The following three methods meet the rule-of-three since all
+// of them take a LeafSystem as input and connect their outputs to an
+// LcmPublisherSystem. Factor out the common code into a shared method.
 
 template <typename T>
 void AutomotiveSimulator<T>::AddPublisher(
@@ -445,7 +466,20 @@ void AutomotiveSimulator<T>::Start(double target_realtime_rate) {
   diagram_ = builder_->Build();
   simulator_ = std::make_unique<systems::Simulator<T>>(*diagram_);
 
-  // Initialize the state of the SimpleCars.
+  InitializeSimpleCars();
+  InitializeEndlessRoadcars();
+  InitializeMaliputRailcars();
+
+  lcm_->StartReceiveThread();
+
+  simulator_->set_target_realtime_rate(target_realtime_rate);
+  simulator_->get_mutable_integrator()->set_maximum_step_size(0.01);
+  simulator_->get_mutable_integrator()->set_minimum_step_size(0.01);
+  simulator_->Initialize();
+}
+
+template <typename T>
+void AutomotiveSimulator<T>::InitializeSimpleCars() {
   for (const auto& pair : simple_car_initial_states_) {
     const SimpleCar<T>* const car = pair.first;
     const SimpleCarState<T>& initial_state = pair.second;
@@ -459,8 +493,10 @@ void AutomotiveSimulator<T>::Start(double target_realtime_rate) {
     DRAKE_ASSERT(state);
     state->set_value(initial_state.get_value());
   }
+}
 
-  // Initialize the state of the EndlessRoadCars.
+template <typename T>
+void AutomotiveSimulator<T>::InitializeEndlessRoadcars() {
   for (const auto& pair : endless_road_cars_) {
     const EndlessRoadCar<T>* const car = pair.first;
     const EndlessRoadCarState<T>& initial_state = pair.second;
@@ -474,27 +510,34 @@ void AutomotiveSimulator<T>::Start(double target_realtime_rate) {
     DRAKE_ASSERT(state);
     state->set_value(initial_state.get_value());
   }
+}
 
-  // Initialize the state of the MaliputRailcars.
-  for (const auto& pair : railcar_initial_states_) {
+template <typename T>
+void AutomotiveSimulator<T>::InitializeMaliputRailcars() {
+  for (auto& pair : railcar_configs_) {
     const MaliputRailcar<T>* const car = pair.first;
-    const MaliputRailcarState<T>& initial_state = pair.second;
+    const MaliputRailcarParams<T>& params = pair.second.first;
+    const MaliputRailcarState<T>& initial_state = pair.second.second;
+
+    systems::LeafContext<T>* context =
+        dynamic_cast<systems::LeafContext<T>*>(
+            diagram_->GetMutableSubsystemContext(
+                simulator_->get_mutable_context(), car));
+    DRAKE_DEMAND(context != nullptr);
+
     systems::VectorBase<T>* context_state =
-        diagram_->GetMutableSubsystemContext(
-            simulator_->get_mutable_context(), car)->
-                get_mutable_continuous_state()->get_mutable_vector();
+        context->get_mutable_continuous_state()->get_mutable_vector();
     MaliputRailcarState<T>* const state =
         dynamic_cast<MaliputRailcarState<T>*>(context_state);
     DRAKE_ASSERT(state);
     state->set_value(initial_state.get_value());
+
+    MaliputRailcarParams<T>* railcar_system_params =
+        dynamic_cast<MaliputRailcarParams<T>*>(
+            context->get_mutable_numeric_parameter(0));
+    DRAKE_DEMAND(railcar_system_params != nullptr);
+    railcar_system_params->set_value(params.get_value());
   }
-
-  lcm_->StartReceiveThread();
-
-  simulator_->set_target_realtime_rate(target_realtime_rate);
-  simulator_->get_mutable_integrator()->set_maximum_step_size(0.01);
-  simulator_->get_mutable_integrator()->set_minimum_step_size(0.01);
-  simulator_->Initialize();
 }
 
 template <typename T>
