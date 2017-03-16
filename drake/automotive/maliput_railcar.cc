@@ -293,6 +293,137 @@ void MaliputRailcar<T>::SetDefaultState(
   railcar_state->set_speed(kDefaultInitialSpeed);
 }
 
+template <typename T>
+void MaliputRailcar<T>::DoCalcNextUpdateTime(const systems::Context<T>& context,
+                                             systems::UpdateActions<T>* actions)
+                                             const {
+  // Obtains the parameters necessary to compute the next update time.
+  const MaliputRailcarConfig<T>& config =
+      this->template GetNumericParameter<MaliputRailcarConfig>(context, 0);
+
+  const VectorBase<T>& context_state = context.get_continuous_state_vector();
+  const MaliputRailcarState<T>* const state =
+      dynamic_cast<const MaliputRailcarState<T>*>(&context_state);
+  DRAKE_ASSERT(state != nullptr);
+
+  const LaneDirection& lane_direction =
+      context.template get_abstract_state<LaneDirection>(0);
+
+  const BasicVector<T>* input =
+      this->template EvalVectorInput<BasicVector>(context,
+          command_input_port_index_);
+  DRAKE_ASSERT(input->size() == 1);
+
+  const T& r = config.r();
+  const T& h = config.h();
+  const T& s = state->s();
+  const T& speed = state->speed();
+  const T acceleration = cond(input == nullptr, T(0), input->GetAtIndex(0));
+  const maliput::api::Lane* lane = lane_direction.lane;
+  const bool with_s = lane_direction.with_s;
+
+  DRAKE_DEMAND(lane != nullptr);
+
+  // Computes `s_dot`, the time derivative of `s`.
+  const T sigma_v = cond(with_s, speed, -speed);
+  const LanePosition first_motion_derivatives =
+      lane_direction.lane->EvalMotionDerivatives(
+          LanePosition(s, r, h),
+          IsoLaneVelocity(sigma_v, 0 /* rho_v */, 0 /* eta_v */));
+  const T s_dot = first_motion_derivatives.s;
+
+  // Computes `s_dot_dot`, the second time derivative of `s`.
+  const T sigma_a = cond(with_s, acceleration, -acceleration);
+  const LanePosition second_motion_derivatives =
+      lane_direction.lane->EvalMotionDerivatives(
+          LanePosition(s, r, h),
+          IsoLaneVelocity(sigma_a, 0 /* rho_a */, 0 /* eta_a */));
+  const T s_dot_dot = second_motion_derivatives.s;
+
+  // TODO(liang.fok): Switch to guard functions once they are available. The
+  // following computes an estimate of when the vehicle will reach the end of
+  // its lane. This estimate will be off when r != 0 and the lane is very
+  // curvey because the scale factors used in Lane::EvalMotionDerivatives() will
+  // not be constant.
+  const T distance = cond(with_s, T(lane->length()) - s, s);
+
+  // The following applies the quadratic formula to solve for `t`, the time when
+  // this vehicle will encounter the end of the lane.
+  //
+  //     s_dot_dot * t^2 + s_dot * t - distance = 0
+  //
+  using std::pow;
+  using std::sqrt;
+  const T t = (-s_dot + sqrt(pow(s_dot, T(2)) + T(4) * s_dot_dot * distance)) /
+      (T(2) * s_dot_dot);
+
+  // Saves `t`, the time when this vehicle will reach the end of the lane, as an
+  // event.
+  actions->time = context.get_time() + t;
+  actions->events.push_back(systems::DiscreteEvent<T>());
+  actions->events.back().action =
+      systems::DiscreteEvent<T>::kUnrestrictedUpdateAction;
+}
+
+template <typename T>
+void MaliputRailcar<T>::DoCalcUnrestrictedUpdate(
+    const systems::Context<T>& context,
+    systems::State<T>* next_state) const {
+
+  // Gets the old configuration and state.
+  const MaliputRailcarConfig<T>& old_config =
+      this->template GetNumericParameter<MaliputRailcarConfig>(context, 0);
+
+  const VectorBase<T>& context_state = context.get_continuous_state_vector();
+  const MaliputRailcarState<T>* const old_state =
+      dynamic_cast<const MaliputRailcarState<T>*>(&context_state);
+  DRAKE_ASSERT(old_state != nullptr);
+
+  const LaneDirection& old_lane_direction =
+      context.template get_abstract_state<LaneDirection>(0);
+  const maliput::api::Lane* old_lane = old_lane_direction.lane;
+  const bool old_with_s = old_lane_direction.with_s;
+
+  // Copies the old state to the new state.
+  next_state->CopyFrom(context.get_state());
+
+
+  // Gets the new lane.
+  const LaneEndSet* possible_branches = old_lane->GetOngoingBranches(
+      // Since old_state->s() may not be exactly zero or old_lane->length(), we
+      // determine which end of the lane we're at based on which side `s` is
+      // closer to.
+      cond(old_state->s() > old_lane->length() / 2,
+           maliput::LaneEnd::kFinish,
+           maliput::LaneEnd::kStart));
+
+  if (possible_branches->size() == 0) {
+    // There are no more branches. Leaves the lane alone but sets the speed to
+    // be zero.
+
+  }
+
+  // TODO(liang.fok) use initial_lane_direction_ to determine whether r's sign
+  // needs to be flipped.
+
+  // systems::VectorBase<T>* next_cstate = next_state->
+  //                          get_mutable_continuous_state()->get_mutable_vector();
+
+  // // Get present state.
+  // const systems::VectorBase<T>& cstate = context.get_continuous_state()->
+  //     get_vector();
+
+  // // Copy the present state to the new one.
+  // next_state->CopyFrom(context.get_state());
+
+  // // Verify that velocity is non-positive.
+  // DRAKE_DEMAND(cstate.GetAtIndex(1) <= 0.0);
+
+  // // Update the velocity.
+  // next_cstate->SetAtIndex(1, cstate.GetAtIndex(1) *
+  //     this->restitution_coef_ * -1.);
+}
+
 // This section must match the API documentation in maliput_railcar.h.
 template class MaliputRailcar<double>;
 

@@ -108,6 +108,12 @@ class MaliputRailcar : public systems::LeafSystem<T> {
   /// Sets `railcar_state` to contain the default state for MaliputRailcar.
   static void SetDefaultState(MaliputRailcarState<T>* railcar_state);
 
+  void DoCalcNextUpdateTime(const systems::Context<T>& context,
+                            systems::UpdateActions<T>* actions) const override;
+
+  void DoCalcUnrestrictedUpdate(const systems::Context<T>& context,
+                                systems::State<T>* state) const override;
+
   /// Getter methods for input and output port descriptors.
   /// @{
   const systems::InputPortDescriptor<T>& command_input() const;

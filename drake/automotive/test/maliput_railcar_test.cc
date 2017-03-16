@@ -60,6 +60,42 @@ class MaliputRailcarTest : public ::testing::Test {
         start_time, with_s);
   }
 
+  // Create a RoadGeometry based on monolane that consists of a straight lane
+  // that's then connected to a left turning lane.
+  void InitializeTwoLaneSegment(double start_time = 0, bool with_s = true) {
+    maliput::monolane::Builder builder(
+        maliput::api::RBounds(-2, 2),   /* lane_bounds       */
+        maliput::api::RBounds(-4, 4),   /* driveable_bounds  */
+        0.01,                           /* linear tolerance  */
+        0.5 * M_PI / 180.0);            /* angular_tolerance */
+    builder.Connect(
+        "point.0",                                             /* id     */
+        Endpoint(EndpointXy(0, 0, 0), EndpointZ(0, 0, 0, 0)),  /* start  */
+        kStraightRoadLength,                                   /* length */
+        EndpointZ(0, 0, 0, 0));                                /* z_end  */
+    builder.Connect(
+        "point.1",                                             /* id     */
+        Endpoint(EndpointXy(10, 0, 0), EndpointZ(0, 0, 0, 0)), /* start  */
+        ArcOffset(kCurvedRoadRadius, kCurvedRoadTheta),        /* arc    */
+        EndpointZ(0, 0, 0, 0));                                /* z_end  */
+    // std::unique_ptr<const maliput::api::RoadGeometry> road =
+    //     builder.Build(maliput::api::RoadGeometryId(
+    //         {"RailcarTestTwoLaneSegmentRoad"}));
+    // maliput::utility::ObjFeatures features;
+    // features.max_grid_unit = maliput::utility::ObjFeatures().max_grid_unit;
+    // features.min_grid_resolution =
+    //     maliput::utility::ObjFeatures().min_grid_resolution;
+    // maliput::utility::GenerateObjFile(road.get(),
+    //     "/home/liang/Downloads/test-obj", "foo", features);
+    // Initialize(
+    //     std::move(road),
+    //     start_time, with_s);
+    Initialize(
+        builder.Build(maliput::api::RoadGeometryId(
+            {"RailcarTestTwoLaneSegmentRoad"})),
+        start_time, with_s);
+  }
+
   void Initialize(std::unique_ptr<const maliput::api::RoadGeometry> road,
       double start_time, bool with_s) {
     road_ = std::move(road);
@@ -114,8 +150,12 @@ class MaliputRailcarTest : public ::testing::Test {
     railcar_config->SetFrom(config);
   }
 
+  // The length of the straight lane segment of the road when it is created
+  // using InitializeTwoLaneSegment().
+  const double kStraightRoadLength{10};
+
   // The arc radius and theta of the road when it is created using
-  // InitializeCurvedMonoLane().
+  // InitializeCurvedMonoLane() and InitializeTwoLaneSegment().
   const double kCurvedRoadRadius{10};
   const double kCurvedRoadTheta{M_PI_2};
 
@@ -458,6 +498,27 @@ TEST_F(MaliputRailcarTest, DecreasingS) {
   dut_->CalcTimeDerivatives(*context_, derivatives_.get());
   EXPECT_DOUBLE_EQ(result->s(), -MaliputRailcar<double>::kDefaultInitialSpeed);
   EXPECT_DOUBLE_EQ(result->speed(), kAccelCmd);
+}
+
+// Tests the ability for a MaliputRailcar to traverse lane boundaries.
+TEST_F(MaliputRailcarTest, TraverseLaneBoundary) {
+  EXPECT_NO_FATAL_FAILURE(InitializeTwoLaneSegment(0 /* start_time */,
+                                                   false /* with_s */));
+  // // Grabs a pointer to where the EvalTimeDerivatives results end up.
+  // const MaliputRailcarState<double>* const result =
+  //     dynamic_cast<const MaliputRailcarState<double>*>(
+  //         derivatives_->get_mutable_vector());
+  // ASSERT_NE(nullptr, result);
+
+  // // Sets the input command.
+  // const double kAccelCmd{1.5};  // The acceleration command.
+  // SetInputValue(kAccelCmd);
+
+  // // Checks that the time derivative of `s` is the negative of the speed, which
+  // // happens when the vehicle is traveling in the negative `s` direction.
+  // dut_->CalcTimeDerivatives(*context_, derivatives_.get());
+  // EXPECT_DOUBLE_EQ(result->s(), -MaliputRailcar<double>::kDefaultInitialSpeed);
+  // EXPECT_DOUBLE_EQ(result->speed(), kAccelCmd);
 }
 
 }  // namespace
