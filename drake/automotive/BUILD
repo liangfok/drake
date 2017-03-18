@@ -566,6 +566,7 @@ drake_cc_googletest(
         "//drake/automotive/maliput/api",
         "//drake/automotive/maliput/dragway",
         "//drake/automotive/maliput/monolane",
+        "//drake/automotive/maliput/utility",
         "//drake/common:drake_path",
         "//drake/common:eigen_matrix_compare",
         "//drake/math:geometric_transform",
