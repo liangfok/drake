@@ -55,78 +55,61 @@ class AutomotiveSimulator {
   /// Returns the RigidBodyTree.  Beware that the AutomotiveSimulator::Start()
   /// method invokes RigidBodyTree::compile, which may substantially update the
   /// tree representation.
-  const RigidBodyTree<T>& get_rigid_body_tree();
+  // const RigidBodyTree<T>& get_rigid_body_tree();
 
-  /// Adds a SimpleCar system to this simulation, including its DrivingCommand
-  /// LCM input and EulerFloatingJoint output.
+  /// Adds a SimpleCar to this simulation including its DrivingCommand LCM
+  /// input and EulerFloatingJoint output.
   ///
   /// @pre Start() has NOT been called.
   ///
-  /// @param[in] sdf_filename The name of the SDF file to load as the
-  /// visualization for the simple car. This file must contain one free-floating
-  /// model of a vehicle (i.e., a model that's not connected to the world). A
-  /// floating joint of type multibody::joints::kRollPitchYaw is added to
-  /// connect the vehicle model to the world.
+  /// @param car_vis The visualization of the SimpleCar. This parameter also
+  /// specifies the vehicle's name name via CarVis::name().
   ///
-  /// @param model_name  If this is non-empty, the car's model will be labeled
-  ///                    with this name.
-  ///
-  /// @param channel_name  The simple car will subscribe to a channel
-  ///                      with this name to receive commands.  Must be
-  ///                      non-empty.
+  /// @param channel_name  The LCM channel to subsribe to for receiving driving
+  /// commands. This must be non-empty.
   ///
   /// @param initial_state The initial state of the SimpleCar.
   ///
   /// @return The model instance ID of the SimpleCar that was just added to
   /// the simulation.
-  int AddSimpleCarFromSdf(const std::string& sdf_filename,
-                          const std::string& model_name,
-                          const std::string& channel_name,
-                          const SimpleCarState<T>& initial_state =
-                              SimpleCarState<T>());
+  void AddSimpleCar(std::unique_ptr<CarVis<T>> car_vis,
+      const std::string& channel_name,
+      const SimpleCarState<T>& initial_state = SimpleCarState<T>());
 
-  /// Adds a TrajectoryCar system to this simulation, including its
-  /// EulerFloatingJoint output.
+  /// Adds a TrajectoryCar to this simulation including its EulerFloatingJoint
+  /// output.
   ///
   /// @pre Start() has NOT been called.
   ///
-  /// @param[in] sdf_filename See the documentation for the parameter of the
-  /// same name in AddSimpleCarFromSdf().
+  /// @param car_vis The visualization of the SimpleCar. This parameter also
+  /// specifies the vehicle's name name via CarVis::name().
   ///
   /// @param[in] curve See documentation of TrajectoryCar::TrajectoryCar.
   ///
   /// @param[in] speed See documentation of TrajectoryCar::TrajectoryCar.
   ///
   /// @param[in] start_time See documentation of TrajectoryCar::TrajectoryCar.
-  ///
-  /// @return The model instance ID of the TrajectoryCar that was just added to
-  /// the simulation.
-  int AddTrajectoryCarFromSdf(const std::string& sdf_filename,
-                              const Curve2<double>& curve,
-                              double speed,
-                              double start_time);
+  void AddTrajectoryCar(std::unique_ptr<CarVis<T>> car_vis,
+      const Curve2<double>& curve, double speed, double start_time);
 
-  /// Adds an EndlessRoadCar system to this simulation, including its
+  /// Adds an EndlessRoadCar to this simulation, including its
   /// EulerFloatingJoint output.
   ///
-  /// @param id  ID string for the car instance
-  /// @param sdf_filename The name of the SDF file to load as the
-  ///    visualization for the simple car. This file must contain one
-  ///    free-floating model of a vehicle (i.e., a model that's not connected
-  ///    to the world). A floating joint of type
-  ///    multibody::joints::kRollPitchYaw is added to connect the vehicle
-  ///    model to the world.
-  /// @param initial_state  Initial state of the car at start of simulation.
-  /// @param control_type  The controller type; see EndlessRoadCar.
-  /// @param channel_name  If @p control_type is kUser, then this must be
-  ///                      non-empty and the car will subscribe to a channel
-  ///                      with this name to receive commands.
-  ///
   /// @pre Start() has NOT been called.
+  ///
   /// @pre SetRoadGeometry() HAS been called.
-  int AddEndlessRoadCar(
-      const std::string& id,
-      const std::string& sdf_filename,
+  ///
+  /// @param car_vis The visualization of the SimpleCar. This parameter also
+  /// specifies the vehicle's name name via CarVis::name().
+  ///
+  /// @param initial_state  Initial state of the car at start of simulation.
+  ///
+  /// @param control_type  The controller type; see EndlessRoadCar.
+  ///
+  /// @param channel_name  If @p control_type is kUser, then this must be
+  /// non-empty and the car will subscribe to a channel with this name to
+  /// receive commands.
+  void AddEndlessRoadCar(std::unique_ptr<CarVis<T>> car_vis,
       const EndlessRoadCarState<T>& initial_state,
       typename EndlessRoadCar<T>::ControlType control_type,
       const std::string& channel_name);
@@ -134,15 +117,15 @@ class AutomotiveSimulator {
   /// Sets the RoadGeometry for this simulation.
   ///
   /// The provided RoadGeometry will be wrapped with in an InfiniteCircuitRoad.
-  /// @p start specifies at which end of which lane the cicuit shall begin.
+  /// @p start specifies at which end of which lane the circuit shall begin.
   /// @p path specifies the route of the circuit; if @p path is empty, some
   /// default will be constructed.  See maliput::utility::InfiniteCircuitRoad
   /// for details.
   ///
+  /// @pre Start() has NOT been called.
+  ///
   /// @p start and @p path provide pointers to objects owned by @p road, so
   /// their lifetime requirements are dictated by @p road.
-  ///
-  /// @pre Start() has NOT been called.
   const maliput::utility::InfiniteCircuitRoad* SetRoadGeometry(
       std::unique_ptr<const maliput::api::RoadGeometry> road,
       const maliput::api::LaneEnd& start,
@@ -213,12 +196,12 @@ class AutomotiveSimulator {
 
  private:
   int allocate_vehicle_number();
-  int AddSdfModel(const std::string& sdf_filename,
-                  const SimpleCarToEulerFloatingJoint<T>* coord_transform,
-                  const std::string& model_name);
-  int AddSdfModel(const std::string& sdf_filename,
-                  const EndlessRoadCarToEulerFloatingJoint<T>* coord_transform,
-                  const std::string& model_name);
+  // int AddSdfModel(const std::string& sdf_filename,
+  //                 const SimpleCarToEulerFloatingJoint<T>* coord_transform,
+  //                 const std::string& model_name);
+  // int AddSdfModel(const std::string& sdf_filename,
+  //                 const EndlessRoadCarToEulerFloatingJoint<T>* coord_transform,
+  //                 const std::string& model_name);
 
   // Connects the systems that output the pose of each vehicle to the
   // visualizer. This is done by using multiplexers to connect systems that
@@ -242,8 +225,8 @@ class AutomotiveSimulator {
   void GenerateAndLoadRoadNetworkUrdf();
 
   // For both building and simulation.
-  std::unique_ptr<RigidBodyTree<T>> rigid_body_tree_{
-      std::make_unique<RigidBodyTree<T>>()};
+  // std::unique_ptr<RigidBodyTree<T>> rigid_body_tree_{
+  //     std::make_unique<RigidBodyTree<T>>()};
 
   std::unique_ptr<lcm::DrakeLcmInterface> lcm_{};
   std::unique_ptr<const maliput::api::RoadGeometry> road_{};
@@ -258,8 +241,8 @@ class AutomotiveSimulator {
   // points to the system that emits the vehicle's RPY pose in the world.
   // TODO(liang.fok) Update this to support models that connect to the world
   // via non-RPY floating joints. See #3919.
-  std::vector<std::pair<int, const systems::System<T>*>>
-      rigid_body_tree_publisher_inputs_;
+  // std::vector<std::pair<int, const systems::System<T>*>>
+  //     rigid_body_tree_publisher_inputs_;
 
   // Holds the desired initial states of each EndlessRoadCar. It is used to
   // initialize the simulation's diagram's state and to connect the

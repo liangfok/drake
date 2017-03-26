@@ -67,17 +67,15 @@ systems::DiagramBuilder<T>* AutomotiveSimulator<T>::get_builder() {
   return builder_.get();
 }
 
-template <typename T>
-const RigidBodyTree<T>& AutomotiveSimulator<T>::get_rigid_body_tree() {
-  return *rigid_body_tree_;
-}
+// template <typename T>
+// const RigidBodyTree<T>& AutomotiveSimulator<T>::get_rigid_body_tree() {
+//   return *rigid_body_tree_;
+// }
 
 template <typename T>
-int AutomotiveSimulator<T>::AddSimpleCarFromSdf(
-    const std::string& sdf_filename,
-    const std::string& model_name,
+void AutomotiveSimulator<T>::AddSimpleCar(std::unique_ptr<CarVis<T>> car_vis,
     const std::string& channel_name,
-    const SimpleCarState<T>& initial_state) {
+    const SimpleCarState<T>& initial_state = SimpleCarState<T>());
   DRAKE_DEMAND(!started_);
   DRAKE_DEMAND(aggregator_ != nullptr);
   const int vehicle_number = allocate_vehicle_number();
