@@ -59,7 +59,18 @@ MonolaneOnrampMerge::BuildOnramp() {
       "onramp1", post0->end(),
       mono::ArcOffset(kOnrampArcLength, kOnrampArcRadius / kOnrampArcLength),
       kFlatZ);
-  rb->Connect("onramp0", onramp1->end(), kOnrampLinearLength, kFlatZ);
+  const auto& onramp0 =
+      rb->Connect("onramp0", onramp1->end(), kOnrampLinearLength, kFlatZ);
+
+  // Manually specify the default branches for all junctions in the road.
+  rb->SetDefaultBranch(pre0, LaneEnd::kStart, post0, LaneEnd::kFinish);
+  rb->SetDefaultBranch(post0, LaneEnd::kStart, post1, LaneEnd::kFinish);
+  rb->SetDefaultBranch(post1, LaneEnd::kStart, post2, LaneEnd::kFinish);
+  rb->SetDefaultBranch(post2, LaneEnd::kStart, post3, LaneEnd::kFinish);
+  rb->SetDefaultBranch(post3, LaneEnd::kStart, post4, LaneEnd::kFinish);
+  rb->SetDefaultBranch(post4, LaneEnd::kStart, post5, LaneEnd::kFinish);
+  rb->SetDefaultBranch(onramp1, LaneEnd::kStart, post0, LaneEnd::kFinish);
+  rb->SetDefaultBranch(onramp0, LaneEnd::kStart, onramp1, LaneEnd::kFinish);
 
   // Manually specify the default branches spanning the merge point.
   rb->SetDefaultBranch(pre0, LaneEnd::kStart, post0, LaneEnd::kFinish);
