@@ -1,3 +1,4 @@
+#include <iostream>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -8,6 +9,7 @@
 #include "drake/automotive/create_trajectory_params.h"
 #include "drake/automotive/gen/maliput_railcar_params.h"
 #include "drake/automotive/maliput/dragway/road_geometry.h"
+#include "drake/automotive/maliput/monolane/loader.h"
 #include "drake/automotive/monolane_onramp_merge.h"
 #include "drake/common/drake_path.h"
 #include "drake/common/text_logging_gflags.h"
@@ -22,6 +24,11 @@ DEFINE_int32(num_trajectory_car, 1, "Number of TrajectoryCar vehicles. This "
 DEFINE_int32(num_maliput_railcar, 0, "Number of MaliputRailcar vehicles. This "
              "option is currently only applied when the road network is a "
              "dragway or merge.");
+DEFINE_int32(num_idm_maliput_railcar, 0, "Number of IDM-controlled "
+             "MaliputRailcar vehicles. This option is currently only applied "
+             "when the road network is a dragway The vehicles are spaced apart "
+             " initially.");
+
 DEFINE_double(target_realtime_rate, 1.0,
               "Playback speed.  See documentation for "
               "Simulator::set_target_realtime_rate() for details.");
@@ -60,6 +67,8 @@ DEFINE_double(onramp_base_speed, 25, "The speed of the vehicles added to the "
 DEFINE_bool(onramp_swap_start, false, "Whether to swap the starting lanes of "
     "the vehicles on the onramp.");
 
+DEFINE_bool(with_mobius, false, "Loads the mobius road geometry.");
+
 namespace drake {
 
 using maliput::api::Lane;
@@ -70,16 +79,17 @@ namespace {
 enum class RoadNetworkType {
   flat = 0,
   dragway = 1,
-  onramp = 2
+  onramp = 2,
+  mobius = 3
 };
 
-std::string MakeChannelName(const std::string& name) {
-  const std::string default_prefix{"DRIVING_COMMAND"};
-  if (name.empty()) {
-    return default_prefix;
-  }
-  return default_prefix + "_" + name;
-}
+// std::string MakeChannelName(const std::string& name) {
+//   const std::string default_prefix{"DRIVING_COMMAND"};
+//   if (name.empty()) {
+//     return default_prefix;
+//   }
+//   return default_prefix + "_" + name;
+// }
 
 // Initializes the provided `simulator` with user-specified numbers of
 // `SimpleCar` vehicles and `TrajectoryCar` vehicles. If parameter
@@ -88,20 +98,22 @@ std::string MakeChannelName(const std::string& name) {
 void AddVehicles(RoadNetworkType road_network_type,
     const maliput::api::RoadGeometry* road_geometry,
     AutomotiveSimulator<double>* simulator) {
-  if (FLAGS_simple_car_names.empty()) {
-    const std::string name = "SimpleCar";
-    const std::string& channel_name = MakeChannelName(name);
-    drake::log()->info("Adding simple car subscribed to {}.", channel_name);
-    simulator->AddPriusSimpleCar(name, channel_name);
-  } else {
-    std::istringstream simple_car_name_stream(FLAGS_simple_car_names);
-    std::string name;
-    while (getline(simple_car_name_stream, name, ',')) {
-      const std::string& channel_name = MakeChannelName(name);
-      drake::log()->info("Adding simple car subscribed to {}.", channel_name);
-      simulator->AddPriusSimpleCar(name, channel_name);
-    }
-  }
+  // if (FLAGS_simple_car_names.empty()) {
+  //   const std::string name = "SimpleCar";
+  //   const std::string& channel_name = MakeChannelName(name);
+  //   drake::log()->info("Adding simple car subscribed to {}.", channel_name);
+  //   SimpleCarState<double> state;
+  //   state.set_x(100);
+  //   simulator->AddPriusSimpleCar(name, channel_name, state);
+  // } else {
+  //   std::istringstream simple_car_name_stream(FLAGS_simple_car_names);
+  //   std::string name;
+  //   while (getline(simple_car_name_stream, name, ',')) {
+  //     const std::string& channel_name = MakeChannelName(name);
+  //     drake::log()->info("Adding simple car subscribed to {}.", channel_name);
+  //     simulator->AddPriusSimpleCar(name, channel_name);
+  //   }
+  // }
 
   if (road_network_type == RoadNetworkType::dragway) {
     DRAKE_DEMAND(road_geometry != nullptr);
@@ -137,6 +149,25 @@ void AddVehicles(RoadNetworkType road_network_type,
       simulator->AddPriusMaliputRailcar("MaliputRailcar" + std::to_string(i),
                                         LaneDirection(lane), params, state);
     }
+    for (int i = 0; i < FLAGS_num_idm_maliput_railcar; ++i) {
+      const int lane_index = i % FLAGS_num_dragway_lanes;
+      const double s = i * 15;
+      const double speed = FLAGS_dragway_base_speed +
+          lane_index * FLAGS_dragway_lane_speed_delta;
+      MaliputRailcarParams<double> params;
+      params.set_r(0);
+      params.set_h(0);
+
+      const Lane* lane =
+          dragway_road_geometry->junction(0)->segment(0)->lane(lane_index);
+      MaliputRailcarState<double> state;
+
+      state.set_s(s);
+      state.set_speed(speed);
+      simulator->AddIdmControlledPriusMaliputRailcar(
+          "IdmControlledMaliputRailcar" + std::to_string(i),
+          LaneDirection(lane), params, state);
+    }
   } else if (road_network_type == RoadNetworkType::onramp) {
     DRAKE_DEMAND(road_geometry != nullptr);
     for (int i = 0; i < FLAGS_num_maliput_railcar; ++i) {
@@ -145,6 +176,22 @@ void AddVehicles(RoadNetworkType road_network_type,
       const int n = FLAGS_onramp_swap_start ? (i + 1) : i;
       const std::string lane_name = (n % 2 == 0) ? "l:onramp0" : "l:pre0";
       const bool with_s = false;
+
+      LaneDirection lane_direction(simulator->FindLane(lane_name), with_s);
+      MaliputRailcarParams<double> params;
+      params.set_r(0);
+      params.set_h(0);
+      MaliputRailcarState<double> state;
+      state.set_s(with_s ? 0 : lane_direction.lane->length());
+      state.set_speed(FLAGS_onramp_base_speed);
+      simulator->AddPriusMaliputRailcar("MaliputRailcar" + std::to_string(i),
+          lane_direction, params, state);
+    }
+  } else if (road_network_type == RoadNetworkType::mobius) {
+    DRAKE_DEMAND(road_geometry != nullptr);
+    for (int i = 0; i < FLAGS_num_maliput_railcar; ++i) {
+      const std::string lane_name = "l:0";
+      const bool with_s = true;
 
       LaneDirection lane_direction(simulator->FindLane(lane_name), with_s);
       MaliputRailcarParams<double> params;
@@ -202,6 +249,12 @@ const maliput::api::RoadGeometry* AddOnramp(
   return simulator->SetRoadGeometry(onramp_generator->BuildOnramp());
 }
 
+const maliput::api::RoadGeometry* AddMobilus(
+    AutomotiveSimulator<double>* simulator) {
+  return simulator->SetRoadGeometry(maliput::monolane::LoadFile(
+      GetDrakePath() + "/automotive/mobius.yaml"));
+}
+
 // Adds a terrain to the simulated world. The type of terrain added depends on
 // the provided `road_network_type` parameter. A pointer to the road network is
 // returned. A return value of `nullptr` is possible if no road network is
@@ -222,6 +275,10 @@ const maliput::api::RoadGeometry* AddTerrain(RoadNetworkType road_network_type,
       road_geometry = AddOnramp(simulator);
       break;
     }
+    case RoadNetworkType::mobius: {
+      road_geometry = AddMobilus(simulator);
+      break;
+    }
   }
   return road_geometry;
 }
@@ -232,6 +289,7 @@ RoadNetworkType DetermineRoadNetworkType() {
   int num_environments_selected{0};
   if (FLAGS_with_onramp) ++num_environments_selected;
   if (FLAGS_num_dragway_lanes) ++num_environments_selected;
+  if (FLAGS_with_mobius) ++num_environments_selected;
   if (num_environments_selected > 1) {
     throw std::runtime_error("ERROR: More than one road network selected. Only "
         "one road network can be selected at a time.");
@@ -241,6 +299,8 @@ RoadNetworkType DetermineRoadNetworkType() {
     return RoadNetworkType::dragway;
   } else if (FLAGS_with_onramp) {
     return RoadNetworkType::onramp;
+  } else if (FLAGS_with_mobius) {
+    return RoadNetworkType::mobius;
   } else {
     return RoadNetworkType::flat;
   }

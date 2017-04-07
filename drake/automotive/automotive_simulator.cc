@@ -192,7 +192,7 @@ int AutomotiveSimulator<T>::AddIdmControlledPriusMaliputRailcar(
   // TODO(liang.fok) Remove this once IdmController outputs acceleration.
   auto matrix_gain =
       builder_->template AddSystem<systems::MatrixGain<T>>(
-          Eigen::Vector2d(0, 1));
+          Eigen::Vector2d(0, 1).transpose());
 
   builder_->Connect(railcar->pose_output(), controller->ego_pose_input());
   builder_->Connect(railcar->velocity_output(),
@@ -253,6 +253,7 @@ const maliput::api::Lane* AutomotiveSimulator<T>::FindLane(
       const maliput::api::Segment* segment = junction->segment(j);
       for (int k = 0; k < segment->num_lanes(); ++k) {
         const maliput::api::Lane* lane = segment->lane(k);
+        std::cout << "Checking lane: " << lane->id().id << std::endl;
         if (lane->id().id == name) {
           return lane;
         }
@@ -396,6 +397,9 @@ template <typename T>
 void AutomotiveSimulator<T>::Start(double target_realtime_rate) {
   DRAKE_DEMAND(!has_started());
   TransmitLoadMessage();
+
+  std::cout << "Press any key to start..." << std::endl;
+  getchar();
 
   builder_->Connect(
       aggregator_->get_output_port(0),

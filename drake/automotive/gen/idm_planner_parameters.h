@@ -47,8 +47,8 @@ class IdmPlannerParameters : public systems::BasicVector<T> {
   /// @arg @c bloat_diameter defaults to 4.5 in units of m.
   /// @arg @c distance_lower_limit defaults to 1e-2 in units of m.
   IdmPlannerParameters() : systems::BasicVector<T>(K::kNumCoordinates) {
-    this->set_v_ref(10.0);
-    this->set_a(1.0);
+    this->set_v_ref(100.0);
+    this->set_a(3.0);
     this->set_b(3.0);
     this->set_s_0(1.0);
     this->set_time_headway(0.1);
