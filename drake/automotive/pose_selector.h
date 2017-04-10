@@ -74,6 +74,8 @@ const RoadOdometry<double> FindClosestLeading(
     const systems::rendering::PoseVector<double>& ego_pose,
     const systems::rendering::PoseBundle<double>& traffic_poses);
 
+
+
 /// Computes the RoadPosition for a car whose @p pose is located on a given @p
 /// road.
 const maliput::api::RoadPosition CalcRoadPosition(
