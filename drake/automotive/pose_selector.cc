@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <limits>
+#include <sstream>
 
 #include "drake/common/drake_assert.h"
 
@@ -10,7 +11,6 @@ namespace automotive {
 namespace pose_selector {
 
 using maliput::api::Lane;
-using maliput::api::LanePosition;
 using maliput::api::RoadGeometry;
 using maliput::api::RoadPosition;
 using systems::rendering::FrameVelocity;
@@ -29,12 +29,12 @@ const std::pair<RoadOdometry<double>, RoadOdometry<double>> FindClosestPair(
 
   // Default the leading and trailing vehicles with positions extending to,
   // respectively, positive and negative infinity and with zero velocities.
-  RoadPosition pos_leading = RoadPosition(
-      lane, LanePosition(std::numeric_limits<double>::infinity(), 0., 0.));
+  const RoadPosition pos_leading = RoadPosition(
+      lane, {std::numeric_limits<double>::infinity(), 0., 0.});
   RoadOdometry<double> result_leading =
       RoadOdometry<double>(pos_leading, FrameVelocity<double>());
-  RoadPosition pos_trailing = RoadPosition(
-      lane, LanePosition(-std::numeric_limits<double>::infinity(), 0., 0.));
+  const RoadPosition pos_trailing = RoadPosition(
+      lane, {-std::numeric_limits<double>::infinity(), 0., 0.});
   RoadOdometry<double> result_trailing =
       RoadOdometry<double>(pos_trailing, FrameVelocity<double>());
 
@@ -71,6 +71,10 @@ const RoadOdometry<double> FindClosestLeading(
   return FindClosestPair(road, ego_pose, traffic_poses).first;
 }
 
+const std::pair<RoadOdometry<double>, RoadOdometry<double>>
+    FindClosestPairAcrossBranch() {
+}
+
 const RoadPosition CalcRoadPosition(const RoadGeometry& road,
                                     const Isometry3<double>& pose) {
   return road.ToRoadPosition(
@@ -86,6 +90,33 @@ double GetSVelocity(const RoadOdometry<double>& road_odom) {
   const double vy = road_odom.vel.get_velocity().translational().y();
 
   return vx * std::cos(rot.yaw) + vy * std::sin(rot.yaw);
+}
+
+void CrawlForwardFixedDistance(double s_max, bool with_s,
+                               const RoadPosition& position) {
+  // Loop through all default branches, terminating once a lane containing the
+  // goal point is found.
+  // TODO(jadecastro): Relax the need to have default branches specified for
+  // every lane.
+  T s_new = (with_s) ? (position.pos.s + s_lookahead)
+      : (position.pos.s - s_lookahead);
+  std::unique_ptr<LaneEnd> branch;
+  const Lane* lane{position.lane};
+  while (s_new < 0 || s_new > lane->length()) {
+    branch = cond(with_s, lane->GetDefaultBranch(LaneEnd::kFinish),
+                  lane->GetDefaultBranch(LaneEnd::kStart));
+    if (branch == nullptr) {
+      std::stringstream msg;
+      msg << "PoseSelector::CrawlForwardFixedDistance: " <<
+          << "No default branch set for lane " << lane->id().id;
+      DRAKE_ABORT_MSG(msg.str().c_str());
+    }
+    lane = branch->lane;
+    const T s_overrun = cond(with_s, s_new - lane->length(), -s_new);
+    s_new = cond(branch->end == LaneEnd::kStart, s_overrun,
+                 lane->length() - s_overrun);
+    with_s =  (branch->end == LaneEnd::kStart) ? true : false;
+  }
 }
 
 }  // namespace pose_selector
