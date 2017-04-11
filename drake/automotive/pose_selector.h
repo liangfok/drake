@@ -31,11 +31,15 @@ struct RoadOdometry {
   systems::rendering::FrameVelocity<T> vel{};
 };
 
+/// Specifies whether to assess the cars ahead or behind the ego car at its
+/// current orientation with respect to its lane.
+enum class WhichSide {kAhead = 0, kBehind = 1};
+
 /// Returns the leading and trailing cars that have closest `s`-coordinates in a
-/// given @p traffic_lane to an ego car as if the ego car were traveling in @p
-/// traffic_lane at its current `s`-position.  The ego car's pose @ego_pose and
-/// the poses of the traffic cars (@p traffic_poses) are assumed to exist on the
-/// same @p road.  If @p traffic_lane is `nullptr`, the ego car's current lane
+/// given @p traffic_lane to an ego car as if the ego car had moved along the
+/// `r`-direction into @p traffic_lane at its current `s`-position.  The ego
+/// car's pose @ego_pose and the poses of the traffic cars (@p traffic_poses)
+/// are provided.  If @p traffic_lane is `nullptr`, the ego car's current lane
 /// is used (this is derived from a call to CalcRoadPosition).  If no
 /// leading/trailing cars are seen within @p traffic_lane, car `s`-positions are
 /// taken to be at infinite distances away from the ego car.
@@ -43,7 +47,13 @@ struct RoadOdometry {
 /// The return values are a pair of leading/trailing RoadOdometries. Note that
 /// when no car is detected in front of (resp. behind) the ego car, the
 /// respective RoadPosition will contain an `s`-value of positive
-/// (resp. negative) infinity (`std::numeric_limits<double>::infinity()`).
+/// (resp. negative) infinity (`std::numeric_limits<double>::infinity()`).  Any
+/// traffic poses that are redunant with `ego_pose` (i.e. have the same
+/// RoadPosition as the ego car) are discarded.
+///
+/// @p max_scanning_distance is the maximum distance to be scanned forward from
+/// the ego pose before declaring the car is at infinite distance ahead
+/// (resp. behind).
 ///
 /// N.B. When comparing across lanes, it is assumed that @p road is configured
 /// such that a comparison between the `s`-positions of any two cars on the road
@@ -52,15 +62,20 @@ struct RoadOdometry {
 /// 1, it would be 10 meters ahead of car B.  Only straight multi-lane roads are
 /// supported presently.
 ///
+/// The road network is required to have default branches set.
+///
+/// Assumes that there is only one default branch ahead. Selects the FIRST
+/// ENCOUNTERED default branch when scanning in the backward direction.
+///
 /// TODO(jadecastro): Support road networks containing multi-lane segments
 /// (#4934).
 ///
 /// TODO(jadecastro): Support vehicles traveling in the negative-`s`-direction
 /// in a given Lane.
 const std::pair<RoadOdometry<double>, RoadOdometry<double>> FindClosestPair(
-    const maliput::api::RoadGeometry& road,
     const systems::rendering::PoseVector<double>& ego_pose,
     const systems::rendering::PoseBundle<double>& traffic_poses,
+    int max_scanning_distance, double lane_qual_distance,
     const maliput::api::Lane* traffic_lane = nullptr);
 
 /// Same as FindClosestPair() except that: (1) it only considers the ego car's
@@ -69,12 +84,11 @@ const std::pair<RoadOdometry<double>, RoadOdometry<double>> FindClosestPair(
 ///  Note that when no car is detected in front of the ego car, the returned
 ///  RoadOdometry will contain an `s`-value of
 ///  `std::numeric_limits<double>::infinity()`.
-const RoadOdometry<double> FindClosestLeading(
-    const maliput::api::RoadGeometry& road,
+const RoadOdometry<double> FindSingleClosestPose(
     const systems::rendering::PoseVector<double>& ego_pose,
-    const systems::rendering::PoseBundle<double>& traffic_poses);
-
-
+    const systems::rendering::PoseBundle<double>& traffic_poses,
+    const Lane* const lane = nullptr,
+    int max_scanning_distance, double lane_qual_distance);
 
 /// Computes the RoadPosition for a car whose @p pose is located on a given @p
 /// road.
@@ -85,7 +99,16 @@ const maliput::api::RoadPosition CalcRoadPosition(
 // road_odom.  Assumes the road has zero elevation and superelevation.
 //
 // TODO(jadecastro): Generalize to three-dimensional rotations.
-double GetSVelocity(const pose_selector::RoadOdometry<double>& road_odom);
+double GetIsoLaneVelocity(
+    const RoadOdometry<double>& road_odometry,
+    const maliput::api::Lane* lane = road_odometry.lane);
+
+LaneDirection GetLaneDirection(
+    const RoadOdometry<double>& road_odometry,
+    const maliput::api::Lane* lane = road_odometry.lane);
+
+// 
+void get_next_lane(LaneDirection* lane_direction);
 
 }  // namespace pose_selector
 }  // namespace automotive
