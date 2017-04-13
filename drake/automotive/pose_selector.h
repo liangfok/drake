@@ -5,7 +5,9 @@
 
 #include <Eigen/Geometry>
 
+#include "drake/automotive/lane_direction.h"
 #include "drake/automotive/maliput/api/lane.h"
+#include "drake/automotive/maliput/api/lane_data.h"
 #include "drake/automotive/maliput/api/road_geometry.h"
 #include "drake/common/drake_copyable.h"
 #include "drake/systems/rendering/pose_bundle.h"
@@ -28,7 +30,9 @@ struct RoadOdometry {
 
   const maliput::api::Lane* lane{};
   maliput::api::LanePosition pos{};
-  systems::rendering::FrameVelocity<T> vel{};
+  systems::rendering::FrameVelocity<T> vel{};  // TODO(jadecastro): Make this
+                                               // IsoLaneVelocity, or a
+                                               // body-frame velocity?
 };
 
 /// Specifies whether to assess the cars ahead or behind the ego car at its
@@ -72,23 +76,27 @@ enum class WhichSide {kAhead = 0, kBehind = 1};
 ///
 /// TODO(jadecastro): Support vehicles traveling in the negative-`s`-direction
 /// in a given Lane.
-const std::pair<RoadOdometry<double>, RoadOdometry<double>> FindClosestPair(
-    const systems::rendering::PoseVector<double>& ego_pose,
-    const systems::rendering::PoseBundle<double>& traffic_poses,
-    int max_scanning_distance, double lane_qual_distance,
-    const maliput::api::Lane* traffic_lane = nullptr);
+const std::pair<const RoadOdometry<double>, const RoadOdometry<double>>
+    FindClosestPair(
+        const maliput::api::Lane* const lane,
+        const systems::rendering::PoseVector<double>& ego_pose,
+        const systems::rendering::FrameVelocity<double>& ego_velocity,
+        const systems::rendering::PoseBundle<double>& traffic_poses,
+        double scan_ahead_distance);
 
 /// Same as FindClosestPair() except that: (1) it only considers the ego car's
-/// lane and (2) it returns a single the RoadOdometry of the leading vehicle.
+/// lane and (2) it returns a single the RoadOdometry of either the vehicle
+/// ahead (kAhead) or behind (kBehind).  Default is kAhead.
 ///
 ///  Note that when no car is detected in front of the ego car, the returned
 ///  RoadOdometry will contain an `s`-value of
 ///  `std::numeric_limits<double>::infinity()`.
 const RoadOdometry<double> FindSingleClosestPose(
+    const maliput::api::Lane* const lane,
     const systems::rendering::PoseVector<double>& ego_pose,
+    const systems::rendering::FrameVelocity<double>& ego_velocity,
     const systems::rendering::PoseBundle<double>& traffic_poses,
-    const Lane* const lane = nullptr,
-    int max_scanning_distance, double lane_qual_distance);
+    double scan_ahead_distance, WhichSide side = WhichSide::kAhead);
 
 /// Computes the RoadPosition for a car whose @p pose is located on a given @p
 /// road.
@@ -99,13 +107,18 @@ const maliput::api::RoadPosition CalcRoadPosition(
 // road_odom.  Assumes the road has zero elevation and superelevation.
 //
 // TODO(jadecastro): Generalize to three-dimensional rotations.
-double GetIsoLaneVelocity(
-    const RoadOdometry<double>& road_odometry,
-    const maliput::api::Lane* lane = road_odometry.lane);
+const maliput::api::IsoLaneVelocity GetIsoLaneVelocity(
+    const maliput::api::RoadPosition& road_position,
+    const systems::rendering::FrameVelocity<double>& velocity);
 
-LaneDirection GetLaneDirection(
-    const RoadOdometry<double>& road_odometry,
-    const maliput::api::Lane* lane = road_odometry.lane);
+// 
+const LaneDirection get_lane_direction(
+    const maliput::api::IsoLaneVelocity& iso_velocity,
+    const maliput::api::Lane* lane);
+
+// 
+bool IsWithinLane(const maliput::api::GeoPosition& geo_position,
+                  const maliput::api::Lane* lane);
 
 // 
 void get_next_lane(LaneDirection* lane_direction);
