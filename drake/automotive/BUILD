@@ -214,7 +214,9 @@ drake_cc_library(
     hdrs = ["pose_selector.h"],
     visibility = [],
     deps = [
+        "//drake/automotive:lane_direction",
         "//drake/automotive/maliput/api",
+        "//drake/math:geometric_transform",
         "//drake/systems/rendering:pose_bundle",
         "//drake/systems/rendering:pose_vector",
     ],

@@ -103,9 +103,9 @@ void IdmController<T>::ImplDoCalcOutput(
 
   // Find the single closest car ahead.
   const RoadOdometry<T>& lead_car_odom =
-      pose_selector::FindClosestLeading(road_, ego_pose, traffic_poses);
+      pose_selector::FindClosestLeading(ego_pose, ego_velocity, traffic_poses);
   const RoadPosition ego_position =
-      pose_selector::CalcRoadPosition(road_, ego_pose.get_isometry());
+      pose_selector::CalcRoadPosition(ego_pose.get_isometry());
 
   const T& s_ego = ego_position.pos.s;
   const T& s_dot_ego = pose_selector::GetIsoLaneVelocity(
