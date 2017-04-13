@@ -157,6 +157,15 @@ drake_cc_library(
 )
 
 drake_cc_library(
+    name = "performance_monitor",
+    srcs = ["performance_monitor.cc"],
+    hdrs = ["performance_monitor.h"],
+    deps = [
+        "//drake/systems/framework",
+    ],
+)
+
+drake_cc_library(
     name = "random_source",
     srcs = ["random_source.cc"],
     hdrs = ["random_source.h"],

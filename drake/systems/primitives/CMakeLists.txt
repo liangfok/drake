@@ -58,7 +58,22 @@ drake_install_pkg_config_file(drake-system-primitives
     REQUIRES
     drake-common
     drake-trajectories
+    drake-system-framework
     eigen3)
+
+if(lcm_FOUND)
+  add_library_with_exports(LIB_NAME drakePerformanceMonitor
+      SOURCE_FILES performance_monitor.cc)
+  target_link_libraries(drakePerformanceMonitor drakeSystemFramework)
+
+  drake_install_libraries(drakePerformanceMonitor)
+  drake_install_pkg_config_file(drake-performance-monitor
+      TARGET drakePerformanceMonitor
+      LIBS -ldrakePerformanceMonitor
+      REQUIRES
+      drake-common
+      drake-system-framework)
+endif()
 
 if(BUILD_TESTING)
   add_subdirectory(test)
