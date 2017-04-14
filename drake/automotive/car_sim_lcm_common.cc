@@ -13,9 +13,9 @@
 #include "drake/systems/lcm/lcm_subscriber_system.h"
 #include "drake/systems/primitives/constant_vector_source.h"
 #include "drake/systems/primitives/matrix_gain.h"
+#include "drake/systems/primitives/performance_monitor.h"
 #include "drake/systems/sensors/depth_sensor.h"
 #include "drake/systems/sensors/depth_sensor_to_lcm_point_cloud_message.h"
-
 
 using std::make_unique;
 using std::move;
@@ -303,6 +303,8 @@ std::unique_ptr<systems::Diagram<double>> CreateCarSimLcmDiagram(
                   publisher->get_input_port(0));
 
   AddTopLidarSensor(tree_ptr, *controller, lcm, &builder);
+
+  builder.template AddSystem<systems::PerformanceMonitor>();
 
   return builder.Build();
 }

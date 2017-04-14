@@ -140,6 +140,7 @@ if(lcm_FOUND)
   target_link_libraries(car_sim_lcm
       drakeAutomotiveLcm
       drakeLcmSystem
+      drakePerformanceMonitor
       drakeRigidBodyPlant
       drakeSensors
       drakeSystemAnalysis

@@ -20,6 +20,7 @@
 #include "drake/systems/analysis/semi_explicit_euler_integrator.h"
 #include "drake/systems/analysis/simulator.h"
 #include "drake/systems/framework/diagram.h"
+#include "drake/systems/analysis/runge_kutta3_integrator.h"
 
 DEFINE_double(simulation_sec, std::numeric_limits<double>::infinity(),
     "Number of seconds to simulate.");
@@ -143,8 +144,44 @@ int main(int argc, char* argv[]) {
   Simulator<double> simulator(*diagram);
 
   const auto context = simulator.get_mutable_context();
-  simulator.reset_integrator<SemiExplicitEulerIntegrator<double>>(
-      *diagram, 1e-4, context);
+
+  // real-time factor: 0.00108161
+  // real-time factor: 0.00103676
+  // real-time factor: 0.00103481
+  // real-time factor: 0.00107527
+  // real-time factor: 0.00106486
+  // real-time factor: 0.00106075
+  // real-time factor: 0.00105871
+  // real-time factor: 0.00107949
+  // simulator.reset_integrator<SemiExplicitEulerIntegrator<double>>(
+  //     *diagram, 1e-4, context);
+
+  // real-time factor: 0.000993049
+  // real-time factor: 0.000981354
+  // real-time factor: 0.000985222
+  // real-time factor: 0.000987167
+  // real-time factor: 0.00098912
+  // real-time factor: 0.00100182
+  // real-time factor: 0.000987167
+  // real-time factor: 0.000946074
+  // real-time factor: 0.000985222
+  // real-time factor: 0.0017769
+  // real-time factor: 0.00267431
+  // real-time factor: 0.00804369
+  // real-time factor: 0.00993049
+  // real-time factor: 0.0102041
+  // real-time factor: 0.00993049
+  // simulator.reset_integrator<SemiExplicitEulerIntegrator<double>>(
+  //     *diagram, 1e-3, context);
+
+  simulator.reset_integrator<systems::RungeKutta3Integrator<double>>(*diagram,
+      context);
+  // simulator.get_mutable_integrator()->set_fixed_step_mode(false);
+  // simulator.get_mutable_integrator()->set_minimum_step_size(1e-8);
+  // simulator.get_mutable_integrator()->set_maximum_step_size(1e-2);
+  // simulator.get_mutable_integrator()->set_target_accuracy(1e-3);
+  simulator.get_mutable_integrator()->request_initial_step_size_target(1e-4);
+  simulator.get_mutable_integrator()->set_target_accuracy(1e-3);
 
   simulator.Initialize();
   simulator.StepTo(FLAGS_simulation_sec);

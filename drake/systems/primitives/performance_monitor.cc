@@ -1,5 +1,7 @@
 #include "drake/systems/primitives/performance_monitor.h"
 
+#include <iomanip>  // For std::put_time.
+
 using std::chrono::time_point;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
@@ -17,7 +19,7 @@ void PerformanceMonitor::DoPublish(const Context<double>& context) const {
   if (!start_) {
     start_ = true;
     previous_sim_time_ = context.get_time();
-    previous_wall_clock_time_ = std::chrono::steady_clock::now();
+    previous_wall_clock_time_ = steady_clock::now();
     return;
   }
 
@@ -27,7 +29,12 @@ void PerformanceMonitor::DoPublish(const Context<double>& context) const {
 
   if (duration.count() >= publishing_period_ * 1000) {
     const double current_sim_time = context.get_time();
-    std::cout << "Sim time: " << current_sim_time << ", real-time factor: "
+
+    const std::time_t now_c = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now());
+    std::cout << "Current time: "
+        << std::put_time(std::localtime(&now_c), "%F %T")
+        << ", Sim time: " << current_sim_time << ", real-time factor: "
         << ((current_sim_time - previous_sim_time_) * 1000) / duration.count()
         << std::endl;
 

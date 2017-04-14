@@ -397,6 +397,7 @@ drake_cc_binary(
         "//drake/multibody:rigid_body_tree_construction",
         "//drake/multibody/rigid_body_plant",
         "//drake/systems/controllers:pid_controlled_system",
+        "//drake/systems/primitives:performance_monitor",
         "//drake/systems/sensors:depth_sensor",
         "//drake/systems/sensors:depth_sensor_to_lcm_point_cloud_message",
     ],
