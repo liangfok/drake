@@ -6,7 +6,6 @@
 
 namespace drake {
 namespace automotive {
-namespace pose_selector {
 namespace {
 
 using maliput::api::IsoLaneVelocity;
@@ -47,8 +46,8 @@ static void SetDefaultPoses(PoseVector<double>* ego_pose,
   ego_pose->set_translation(Eigen::Translation3d(
       kEgoSPosition /* s */, kEgoRPosition /* r */, 0. /* h */));
   Vector6<double> velocity{};
-  velocity << 0. /* ωx */, 0. /* ωy */, 0. /* ωz */,
-      10. /* vx */, 0. /* vy */, 0. /* vz */;
+  velocity << 0. /* ωx */, 0. /* ωy */, 0. /* ωz */, 10. /* vx */, 0. /* vy */,
+      0. /* vz */;
   ego_velocity->set_velocity(multibody::SpatialVelocity<double>(velocity));
 
   const Eigen::Translation3d translation_far_ahead(
@@ -96,14 +95,16 @@ GTEST_TEST(PoseSelectorTest, DragwayTest) {
 
   // Calculate the current road position and use it to determine the ego car's
   // lane.
+  const maliput::api::GeoPosition geo_position{ego_pose.get_translation().x(),
+        ego_pose.get_translation().y(),
+        ego_pose.get_translation().z()};
   const maliput::api::RoadPosition& ego_position =
-      CalcRoadPosition(road, ego_pose.get_isometry());
+      road.ToRoadPosition(geo_position, nullptr, nullptr, nullptr);
 
   RoadOdometry<double> leading_odometry{};
   RoadOdometry<double> trailing_odometry{};
-  std::tie(leading_odometry, trailing_odometry) =
-      FindClosestPair(ego_position.lane, ego_pose, ego_velocity, traffic_poses,
-                      100.);
+  std::tie(leading_odometry, trailing_odometry) = PoseSelector::FindClosestPair(
+      ego_position.lane, ego_pose, ego_velocity, traffic_poses, 100.);
 
   // Verifies that we are on the road and that the correct car was identified.
   EXPECT_EQ(kLeadingSPosition, leading_odometry.pos.s);
@@ -111,14 +112,15 @@ GTEST_TEST(PoseSelectorTest, DragwayTest) {
 
   // Test that we get the same result when just the leading car is returned.
   const RoadOdometry<double>& traffic_odometry =
-      FindSingleClosestPose(ego_position.lane, ego_pose, ego_velocity,
-                            traffic_poses, 100., WhichSide::kAhead);
+      PoseSelector::FindSingleClosestPose(ego_position.lane, ego_pose,
+                                          ego_velocity, traffic_poses, 100.,
+                                          WhichSide::kAhead);
   EXPECT_EQ(kLeadingSPosition, traffic_odometry.pos.s);
 
   // Peer into the adjacent lane to the left.
-  std::tie(leading_odometry, trailing_odometry) = FindClosestPair(
-      ego_position.lane->to_left(), ego_pose, ego_velocity, traffic_poses,
-      100.);
+  std::tie(leading_odometry, trailing_odometry) =
+      PoseSelector::FindClosestPair(ego_position.lane->to_left(), ego_pose,
+                                    ego_velocity, traffic_poses, 100.);
 
   // Expect to see no cars in the left lane.
   EXPECT_EQ(std::numeric_limits<double>::infinity(), leading_odometry.pos.s);
@@ -129,9 +131,8 @@ GTEST_TEST(PoseSelectorTest, DragwayTest) {
       traffic_poses.get_pose(kJustAheadIndex);
   isometry_just_ahead.translation().y() += kLaneWidth;
   traffic_poses.set_pose(kJustAheadIndex, isometry_just_ahead);
-  std::tie(leading_odometry, std::ignore) =
-      FindClosestPair(ego_position.lane, ego_pose, ego_velocity, traffic_poses,
-                      100.);
+  std::tie(leading_odometry, std::ignore) = PoseSelector::FindClosestPair(
+      ego_position.lane, ego_pose, ego_velocity, traffic_poses, 100.);
 
   // Expect the "far ahead" car to be identified and with the correct speed.
   EXPECT_EQ(kLeadingSPosition + kSOffset, leading_odometry.pos.s);
@@ -141,9 +142,8 @@ GTEST_TEST(PoseSelectorTest, DragwayTest) {
   Isometry3<double> isometry_far_ahead = traffic_poses.get_pose(kFarAheadIndex);
   isometry_far_ahead.translation().y() += kLaneWidth;
   traffic_poses.set_pose(kFarAheadIndex, isometry_far_ahead);
-  std::tie(leading_odometry, std::ignore) =
-      FindClosestPair(ego_position.lane, ego_pose, ego_velocity, traffic_poses,
-                      100.);
+  std::tie(leading_odometry, std::ignore) = PoseSelector::FindClosestPair(
+      ego_position.lane, ego_pose, ego_velocity, traffic_poses, 100.);
 
   // Looking forward, we expect there to be no car in sight.
   EXPECT_EQ(std::numeric_limits<double>::infinity(), leading_odometry.pos.s);
@@ -152,9 +152,9 @@ GTEST_TEST(PoseSelectorTest, DragwayTest) {
   }
 
   // Peer into the adjacent lane to the left.
-  std::tie(leading_odometry, trailing_odometry) = FindClosestPair(
-      ego_position.lane->to_left(), ego_pose, ego_velocity, traffic_poses,
-      100.);
+  std::tie(leading_odometry, trailing_odometry) =
+      PoseSelector::FindClosestPair(ego_position.lane->to_left(), ego_pose,
+                                    ego_velocity, traffic_poses, 100.);
 
   // Expect there to be no car behind on the immediate left and the "just ahead"
   // car to be leading.
@@ -174,7 +174,8 @@ GTEST_TEST(PoseSelectorTest, TestGetSVelocity) {
   FrameVelocity<double> velocity{};
 
   // Expect the s-velocity to be zero.
-  IsoLaneVelocity iso_velocity = GetIsoLaneVelocity(position, velocity);
+  IsoLaneVelocity iso_velocity =
+      PoseSelector::GetIsoLaneVelocity(position, velocity);
   EXPECT_EQ(0., iso_velocity.sigma_v);
   EXPECT_EQ(0., iso_velocity.rho_v);
   EXPECT_EQ(0., iso_velocity.eta_v);
@@ -182,19 +183,18 @@ GTEST_TEST(PoseSelectorTest, TestGetSVelocity) {
   // Set the velocity to be along the lane's s-coordinate.
   velocity[3] = 10.;
   // Expect the s-velocity to match.
-  iso_velocity = GetIsoLaneVelocity(position, velocity);
+  iso_velocity = PoseSelector::GetIsoLaneVelocity(position, velocity);
   EXPECT_EQ(10., iso_velocity.sigma_v);
 
   // Set a velocity vector at 45-degrees with the lane's s-coordinate.
   velocity[3] = 10. * std::cos(M_PI / 4.);
   velocity[4] = 10. * std::sin(M_PI / 4.);
   // Expect the s-velocity to be attenuated by sqrt(2) / 2.
-  iso_velocity = GetIsoLaneVelocity(position, velocity);
+  iso_velocity = PoseSelector::GetIsoLaneVelocity(position, velocity);
   EXPECT_NEAR(10. * std::sqrt(2.) / 2., iso_velocity.sigma_v, 1e-12);
   EXPECT_NEAR(10. * std::sqrt(2.) / 2., iso_velocity.rho_v, 1e-12);
 }
 
 }  // namespace
-}  // namespace pose_selector
 }  // namespace automotive
 }  // namespace drake
