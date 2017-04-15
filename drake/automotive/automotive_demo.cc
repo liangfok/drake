@@ -36,6 +36,11 @@ DEFINE_int32(num_maliput_railcar, 0, "Number of fixed-speed MaliputRailcar "
              "road's base speed and speed delta. The railcars are added after "
              "the IDM-controlled railcars are added and are positioned in "
              "front of the IDM-controlled railcars.");
+DEFINE_string(maliput_railcar_scenario_config, "",
+              "A configuration file specifying the types of MaliputRailcar "
+              "instances to add to the simulation and their initial conditions."
+              " The file implements a Protocol Buffer message defined by "
+              "maliput_railcar_scenario_config.proto.");
 DEFINE_double(target_realtime_rate, 1.0,
               "Playback speed.  See documentation for "
               "Simulator::set_target_realtime_rate() for details.");
@@ -146,15 +151,8 @@ void AddMaliputRailcar(int num_cars, bool idm_controlled, int initial_s_offset,
   }
 }
 
-// Initializes the provided `simulator` with user-specified numbers of
-// `SimpleCar` vehicles and `TrajectoryCar` vehicles. If parameter
-// `road_network_type` equals `RoadNetworkType::dragway`, the provided
-// `road_geometry` parameter must not be `nullptr`.
-void AddVehicles(RoadNetworkType road_network_type,
-    const maliput::api::RoadGeometry* road_geometry,
-    AutomotiveSimulator<double>* simulator) {
+void AddSimpleCars(AutomotiveSimulator<double>* simulator) {
   const double kSimpleCarYSpacing{3};
-
   if (FLAGS_num_simple_car != 0 && !FLAGS_simple_car_names.empty()) {
     throw std::runtime_error("Both --num_simple_car and --simple_car_names "
         "specified. Only one can be specified at a time.");
@@ -181,6 +179,30 @@ void AddVehicles(RoadNetworkType road_network_type,
       y_offset += kSimpleCarYSpacing;
     }
   }
+}
+
+void AddMaliputRailcars(const maliput::api::RoadGeometry* road_geometry,
+    AutomotiveSimulator<double>* simulator) {
+  if ((FLAGS_num_idm_controlled_maliput_railcar > 0 ||
+       FLAGS_num_maliput_railcar > 0) &&
+      FLAGS_maliput_railcar_scenario_config != "") {
+    throw std::runtime_error("Both the number of MaliputRailcars and a "
+        "MaliputRailcar configuration file are specified. Only one can be "
+        "specified.");
+  }
+
+  //...
+}
+
+// Initializes the provided `simulator` with user-specified numbers of
+// `SimpleCar` vehicles and `TrajectoryCar` vehicles. If parameter
+// `road_network_type` equals `RoadNetworkType::dragway`, the provided
+// `road_geometry` parameter must not be `nullptr`.
+void AddVehicles(RoadNetworkType road_network_type,
+    const maliput::api::RoadGeometry* road_geometry,
+    AutomotiveSimulator<double>* simulator) {
+  AddSimpleCars(simulator);
+  AddMaliputRailcars(road_geometry, simulator);
 
   if (road_network_type == RoadNetworkType::dragway) {
     DRAKE_DEMAND(road_geometry != nullptr);
