@@ -147,11 +147,14 @@ api::LanePosition ArcLane::DoToLanePosition(
 
   // Compute the vector from `p` to the center of the arc.
   const V2 v = p - center;
+  const double theta_min = (theta_of_p(1.) > theta_of_p(0.)) ? theta_of_p(0.)
+                                                             : theta_of_p(1.);
+  const double theta_max = (theta_of_p(1.) > theta_of_p(0.)) ? theta_of_p(1.)
+                                                             : theta_of_p(0.);
   const double theta_nearest = (std::atan2(v(1), v(0)) >= 0.)
-      ? math::saturate(std::atan2(v(1), v(0)), theta_of_p(0.),
-                       theta_of_p(1.))
-      : math::saturate(std::atan2(v(1), v(0)) + 2. * M_PI, theta_of_p(0.),
-                       theta_of_p(1.));
+      ? math::saturate(std::atan2(v(1), v(0)), theta_min, theta_max)
+      : math::saturate(std::atan2(v(1), v(0)) + 2. * M_PI, theta_min,
+                       theta_max);
 
   const double s = (d_theta_ >= 0.) ? r_ * (theta_nearest - theta0_)
                                     : -r_ * (theta_nearest - theta0_);
@@ -168,11 +171,13 @@ api::LanePosition ArcLane::DoToLanePosition(
 
   const V2 xy_vector = p - p_nearest;
   const V3 xyz_vector{xy_vector(0), xy_vector(1), h};
-  *distance = (xyz_vector).norm();
+  if (distance != nullptr) *distance = (xyz_vector).norm();
 
-  (*nearest_position).x = p_nearest(0);
-  (*nearest_position).y = p_nearest(1);
-  (*nearest_position).z = elevation().a();
+  if (nearest_position != nullptr) {
+    (*nearest_position).x = p_nearest(0);
+    (*nearest_position).y = p_nearest(1);
+    (*nearest_position).z = elevation().a();
+  }
 
   return api::LanePosition(s, r, h);
 }

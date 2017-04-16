@@ -50,12 +50,14 @@ api::LanePosition LineLane::DoToLanePosition(
   // and the vector connecting `p` and the start of the lane.
   const V2 xy_vector = (xy0 - p) + s * s_unit_vector;
   const V3 xyz_vector{xy_vector(0), xy_vector(1), h};
-  *distance = (xyz_vector).norm();
+  if (distance != nullptr) *distance = (xyz_vector).norm();
 
-  const V2 p_nearest = xy_of_p(s / length);
-  (*nearest_position).x = p_nearest(0);
-  (*nearest_position).y = p_nearest(1);
-  (*nearest_position).z = elevation().a();
+  if (nearest_position != nullptr) {
+    const V2 p_nearest = xy_of_p(s / length);
+    (*nearest_position).x = p_nearest(0);
+    (*nearest_position).y = p_nearest(1);
+    (*nearest_position).z = elevation().a();
+  }
 
   return api::LanePosition(s, r, h);
 }

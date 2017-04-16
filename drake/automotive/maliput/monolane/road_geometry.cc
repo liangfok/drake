@@ -1,3 +1,10 @@
+#include <limits>
+#include <tuple>
+
+#include "drake/automotive/maliput/api/junction.h"
+#include "drake/automotive/maliput/api/lane.h"
+#include "drake/automotive/maliput/api/lane_data.h"
+#include "drake/automotive/maliput/api/segment.h"
 #include "drake/automotive/maliput/monolane/road_geometry.h"
 
 #include "drake/common/drake_assert.h"
@@ -29,11 +36,38 @@ const api::BranchPoint* RoadGeometry::do_branch_point(int index) const {
 
 
 api::RoadPosition RoadGeometry::DoToRoadPosition(
-    const api::GeoPosition&,
-    const api::RoadPosition*,
-    api::GeoPosition*,
-    double*) const {
-  DRAKE_ABORT();  // TODO(maddog@tri.global) Implement me.
+    const api::GeoPosition& geo_position,
+    const api::RoadPosition* hint,
+    api::GeoPosition* nearest_position,
+    double* distance) const {
+  // TODO(jadecastro): Check that the hint contains a valid lane.
+  if (hint != nullptr) {
+    return {hint->lane,
+          hint->lane->ToLanePosition(geo_position, nearest_position, distance)};
+  }
+  double min_distance{std::numeric_limits<double>::infinity()};
+  std::tuple<int, int, int> indices{0, 0, 0};
+  for (int i = 0; i < num_junctions(); ++i) {
+    const api::Junction* junction = this->junction(i);
+    for (int j = 0; j < junction->num_segments(); ++j) {
+      const api::Segment* segment = junction->segment(j);
+      for (int k = 0; k < segment->num_lanes(); ++k) {
+        const api::Lane* lane = segment->lane(k);
+        double new_distance{};
+        const api::LanePosition lane_position =
+            lane->ToLanePosition(geo_position, nearest_position, &new_distance);
+        if ((lane_position.s <= lane->length() || 0. <= lane_position.s) &&
+            (new_distance < min_distance)) {
+          indices = std::make_tuple(i, j, k);
+          min_distance = new_distance;
+        }
+      }
+    }
+  }
+  const api::Lane* lane =
+      junction(std::get<0>(indices))->segment(std::get<1>(indices))
+      ->lane(std::get<2>(indices));
+  return {lane, lane->ToLanePosition(geo_position, nearest_position, distance)};
 }
 
 }  // namespace monolane
