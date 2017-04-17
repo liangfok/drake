@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "json.hpp"
+
 #include "drake/common/drake_copyable.h"
 #include "drake/systems/framework/basic_vector.h"
 #include "drake/systems/framework/context.h"
@@ -292,6 +294,18 @@ class DiagramContext : public Context<T> {
 
   Parameters<T>& get_mutable_parameters() final {
     return *parameters_;
+  }
+
+  friend std::ostream& operator<<(std::ostream& out,
+                                  const DiagramContext<T>& diagram_context) {
+    std::stringstream buffer;
+    buffer << "{ \"DiagramContext\": {";
+    buffer << dynamic_cast<const Context<T>&>(diagram_context);
+    buffer << "}}";
+
+    nlohmann::json j = nlohmann::json::parse(buffer.str());
+    out << j.dump(4);
+    return out;
   }
 
  protected:

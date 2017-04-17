@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "json.hpp"
+
 #include "drake/common/drake_copyable.h"
 #include "drake/systems/framework/basic_vector.h"
 #include "drake/systems/framework/cache.h"
@@ -125,6 +127,18 @@ class LeafContext : public Context<T> {
   /// Returns the entire Parameters object.
   Parameters<T>& get_mutable_parameters() final {
     return *parameters_;
+  }
+
+  friend std::ostream& operator<<(std::ostream& out,
+                                  const LeafContext<T>& leaf_context) {
+    std::stringstream buffer;
+    buffer << "{ \"LeafContext\": {";
+    buffer << dynamic_cast<const Context<T>&>(leaf_context);
+    buffer << "}}";
+
+    nlohmann::json j = nlohmann::json::parse(buffer.str());
+    out << j.dump(4);
+    return out;
   }
 
  protected:

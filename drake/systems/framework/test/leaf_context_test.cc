@@ -351,5 +351,13 @@ TEST_F(LeafContextTest, SetTimeStateAndParametersFrom) {
   EXPECT_EQ(2.0, (target.get_numeric_parameter(0)->GetAtIndex(1).value()));
 }
 
+TEST_F(LeafContextTest, ToStringTest) {
+  std::stringstream buffer;
+  buffer << context_ << std::endl;
+  EXPECT_TRUE(buffer.str().find("LeafContext") != std::string::npos);
+  EXPECT_TRUE(buffer.str().find("Time") != std::string::npos);
+  std::cout << buffer.str() << std::endl;
+}
+
 }  // namespace systems
 }  // namespace drake

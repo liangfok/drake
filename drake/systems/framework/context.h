@@ -400,6 +400,21 @@ class Context {
     // In the abstract-valued case, there is nothing else to check.
   }
 
+  friend std::ostream& operator<<(std::ostream& out,
+                                  const Context<T>& context) {
+    std::stringstream result;
+    result << " \"Time\" : " << context.get_time() << ",";
+    result << " \"State\" : ";
+    if (context.is_stateless()) {
+      result << "\"None\"";
+    } else {
+      result << "\"Coming Soon\"";
+    }
+    result << ",";
+    result << "\"Number of input ports\" : " << context.get_num_input_ports();
+    return out << result.str();
+  }
+
  protected:
   /// Contains the return-type-covariant implementation of Clone().
   virtual Context<T>* DoClone() const = 0;

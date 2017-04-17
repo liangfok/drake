@@ -305,6 +305,13 @@ TEST_F(DiagramContextTest, CloneState) {
   EXPECT_EQ(43.0, (*context_->get_continuous_state())[1]);
 }
 
+TEST_F(DiagramContextTest, ToStringTest) {
+  std::stringstream buffer;
+  buffer << *context_ << std::endl;
+  EXPECT_TRUE(buffer.str().find("DiagramContext") != std::string::npos);
+  EXPECT_TRUE(buffer.str().find("Time") != std::string::npos);
+}
+
 }  // namespace
 }  // namespace systems
 }  // namespace drake
