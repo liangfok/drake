@@ -18,6 +18,10 @@ class LaneEndSet;
 /// Persistent identifier for a Lane element.
 struct LaneId {
   std::string id;
+
+  friend std::ostream& operator<<(std::ostream& out, const LaneId& lane_id) {
+    return out << lane_id.id;
+  }
 };
 
 

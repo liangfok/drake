@@ -115,6 +115,13 @@ void IdmController<T>::ImplDoCalcOutput(
                             nullptr, nullptr, nullptr);
   // std::cout << "ego position: " << ego_position.lane->id().id << ", s = " << ego_position.pos.s << ", r = " << ego_position.pos.r << ", h = " << ego_position.pos.h << std::endl;
 
+  std::cout << "IdmController::ImplDoCalcOutput [" << this->get_name() << "]: "
+      << "Obtaining lead car odometry:\n"
+      << "  - ego_pose = " << ego_pose << "\n"
+      << "  - ego_velocity = " << ego_velocity << "\n"
+      << "  - traffic_poses = " << traffic_poses << "\n"
+      << "  - scan_distance = " << scan_distance << "\n"
+      << "  - headway_distance = " << headway_distance << std::endl;
   // Find the single closest car ahead.
   const RoadOdometry<T>& lead_car_odom =
       PoseSelector::FindSingleClosestAheadAndInBranches(
@@ -126,11 +133,9 @@ void IdmController<T>::ImplDoCalcOutput(
 
   std::cout << "IdmController::ImplDoCalcOutput [" << this->get_name() << "]: "
       << "Lead car odometry:\n"
-      << "  - lane id: " << lead_car_odom.lane->id().id << "\n"
-      << "  - pos (s, r, h): (" << lead_car_odom.pos.s << ", "
-                                << lead_car_odom.pos.r << ", "
-                                << lead_car_odom.pos.h << ")\n"
-      << "  - frame velocity: " << lead_car_odom.vel.get_value().transpose()
+      << "  - lane id: " << lead_car_odom.lane->id() << "\n"
+      << "  - pos: " << lead_car_odom.pos << "\n"
+      << "  - frame velocity: " << lead_car_odom.vel
       << std::endl;
 
   const T& s_dot_ego = PoseSelector::GetIsoLaneVelocity(ego_position,

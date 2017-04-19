@@ -57,6 +57,25 @@ class PoseBundle {
 
   std::unique_ptr<PoseBundle<AutoDiffXd>> ToAutoDiffXd() const;
 
+  /// Returns a string representation of this class.
+  std::string ToString(const std::string& prefix = "") const {
+    std::stringstream buffer;
+    buffer << prefix << "PoseBundle of size " << get_num_poses() << "\n";
+    for (int i = 0; i < get_num_poses(); ++i) {
+      buffer << prefix << "  - " << i << ":\n";
+      buffer << prefix << "    - Name: " << names_.at(i) << "\n";
+      buffer << prefix << "    - ID: " << ids_.at(i) << "\n";
+      buffer << prefix << "    - Pose:\n" << poses_.at(i).matrix() << "\n";
+      buffer << prefix << "    - Velocity: " << velocities_.at(i) << std::endl;
+    }
+    return buffer.str();
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, const PoseBundle&
+      pose_bundle) {
+    return out << pose_bundle.ToString();
+  }
+
  private:
   std::vector<Isometry3<T>> poses_;
   std::vector<FrameVelocity<T>> velocities_;

@@ -37,6 +37,17 @@ class FrameVelocity final : public BasicVector<T> {
 
   static constexpr int kSize = 6;
 
+  friend std::ostream& operator<<(std::ostream& out, const FrameVelocity&
+      frame_velocity) {
+    return out << "("
+        "ωx = " << frame_velocity.GetAtIndex(0) << ", "
+        "ωy = " << frame_velocity.GetAtIndex(1) << ", "
+        "ωz = " << frame_velocity.GetAtIndex(2) << ", "
+        "vx = " << frame_velocity.GetAtIndex(3) << ", "
+        "vy = " << frame_velocity.GetAtIndex(4) << ", "
+        "vz = " << frame_velocity.GetAtIndex(5) << ")";
+  }
+
  protected:
   FrameVelocity<T>* DoClone() const override;
 

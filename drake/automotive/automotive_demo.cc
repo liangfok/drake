@@ -261,7 +261,7 @@ void AddVehicles(RoadNetworkType road_network_type,
           lane_direction, params, state);
     }
     if (FLAGS_num_idm_controlled_maliput_railcar != 0) {
-      // TODO(liang.fok) Support onramp scenarios with variable number of
+      // TODO(liang.fok) Support onramp scenarios with a variable number of
       // IDM-controlled MaliputRailcars.
       DRAKE_THROW_UNLESS(FLAGS_num_idm_controlled_maliput_railcar == 2);
 
@@ -302,7 +302,7 @@ void AddVehicles(RoadNetworkType road_network_type,
       MaliputRailcarState<double> state_1;
       state_1.set_s(lane_direction_1.lane->length() - initial_position_1);
       state_1.set_speed(FLAGS_onramp_base_speed);
-      simulator->AddIdmControlledPriusMaliputRailcar(
+      simulator->AddPriusMaliputRailcar(
           "IdmControlledMaliputRailcar1",
           lane_direction_1, params_1, state_1);
     }
