@@ -57,6 +57,25 @@ class PoseBundle {
 
   std::unique_ptr<PoseBundle<AutoDiffXd>> ToAutoDiffXd() const;
 
+  std::string ToString(const Isometry3<T> pose, const std::string& prefix = "")
+      const {
+    std::cout << "\n\nObtaining string of isometry3d:\n" << pose.matrix() << std::endl;
+    std::stringstream temp_buffer;
+    temp_buffer << pose.matrix();
+    // std::stringstream result_buffer;
+    // std::istringstream result_stream(temp_buffer.str());
+    std::string s;
+    std::stringstream result_buffer;
+    while (std::getline(temp_buffer, s, '\n')) {
+      if (result_buffer.gcount() != 0) {
+        result_buffer << "\n";
+      }
+      result_buffer << prefix << s;
+    }
+    std::cout << "\n\nResult:\n" << result_buffer.str() << std::endl;
+    return result_buffer.str();
+  }
+
   /// Returns a string representation of this class.
   std::string ToString(const std::string& prefix = "") const {
     std::stringstream buffer;
@@ -65,7 +84,8 @@ class PoseBundle {
       buffer << prefix << "  - " << i << ":\n";
       buffer << prefix << "    - Name: " << names_.at(i) << "\n";
       buffer << prefix << "    - ID: " << ids_.at(i) << "\n";
-      buffer << prefix << "    - Pose:\n" << poses_.at(i).matrix() << "\n";
+      buffer << prefix << "    - Pose:\n" << ToString(poses_.at(i), "      ")
+          << "\n";
       buffer << prefix << "    - Velocity: " << velocities_.at(i) << std::endl;
     }
     return buffer.str();
