@@ -29,10 +29,14 @@ DEFINE_int32(num_trajectory_car, 0, "Number of TrajectoryCar vehicles. This "
              "plane or a dragway.");
 DEFINE_int32(num_idm_controlled_maliput_railcar, 0, "Number of IDM-controlled "
              "MaliputRailcar vehicles. This option is currently only applied "
-             "when the road network is a dragway. These cars are added after "
-             "the trajectory cars are added but before the fixed-speed "
-             "railcars are added. They are initialized to be behind the "
-             "fixed-speed railcars, if any.");
+             "when the road network is a dragway or onramp. These cars are "
+             "added after the trajectory cars are added but before the "
+             "fixed-speed railcars are added. They are initialized to be "
+             "behind the fixed-speed railcars, if any.");
+DEFINE_string(idm_controlled_maliput_railcar_initial_position, "",
+              "A comma-separated list that specifies the initial positions of "
+              "the IDM-controlled MaliputRailcars. This option currently only "
+              "works with the onramp merge terrain.");
 DEFINE_int32(num_maliput_railcar, 0, "Number of fixed-speed MaliputRailcar "
              "vehicles. This option is currently only applied when the road "
              "network is a dragway or merge. The speed is derived based on the "
@@ -255,6 +259,52 @@ void AddVehicles(RoadNetworkType road_network_type,
       state.set_speed(FLAGS_onramp_base_speed);
       simulator->AddPriusMaliputRailcar("MaliputRailcar" + std::to_string(i),
           lane_direction, params, state);
+    }
+    if (FLAGS_num_idm_controlled_maliput_railcar != 0) {
+      // TODO(liang.fok) Support onramp scenarios with variable number of
+      // IDM-controlled MaliputRailcars.
+      DRAKE_THROW_UNLESS(FLAGS_num_idm_controlled_maliput_railcar == 2);
+
+      double initial_position_0{0};
+      double initial_position_1{0};
+      if (FLAGS_idm_controlled_maliput_railcar_initial_position != "") {
+        std::istringstream position_stream(
+            FLAGS_idm_controlled_maliput_railcar_initial_position);
+        std::vector<double> initial_positions;
+        std::string s;
+        while (getline(position_stream, s, ',')) {
+          initial_positions.push_back(std::stod(s));
+        }
+        DRAKE_THROW_UNLESS(initial_positions.size() == 2u);
+        initial_position_0 = initial_positions.at(0);
+        initial_position_1 = initial_positions.at(1);
+      }
+      std::cout << "initial_position_0 = " << initial_position_0 << std::endl;
+      std::cout << "initial_position_1 = " << initial_position_1 << std::endl;
+
+      const LaneDirection lane_direction_0(simulator->FindLane("l:onramp0"),
+                                           false /* with s */);
+      MaliputRailcarParams<double> params_0;
+      params_0.set_r(0);
+      params_0.set_h(0);
+      MaliputRailcarState<double> state_0;
+      state_0.set_s(lane_direction_0.lane->length() - initial_position_0);
+      state_0.set_speed(FLAGS_onramp_base_speed);
+      simulator->AddIdmControlledPriusMaliputRailcar(
+          "IdmControlledMaliputRailcar0",
+          lane_direction_0, params_0, state_0);
+
+      const LaneDirection lane_direction_1(simulator->FindLane("l:pre0"),
+                                           false /* with s */);
+      MaliputRailcarParams<double> params_1;
+      params_1.set_r(0);
+      params_1.set_h(0);
+      MaliputRailcarState<double> state_1;
+      state_1.set_s(lane_direction_1.lane->length() - initial_position_1);
+      state_1.set_speed(FLAGS_onramp_base_speed);
+      simulator->AddIdmControlledPriusMaliputRailcar(
+          "IdmControlledMaliputRailcar1",
+          lane_direction_1, params_1, state_1);
     }
   } else {
     for (int i = 0; i < FLAGS_num_trajectory_car; ++i) {
