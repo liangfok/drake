@@ -124,8 +124,13 @@ void IdmController<T>::ImplDoCalcOutput(
   //     ego_position.lane, ego_pose, ego_velocity, traffic_poses, scan_distance,
   //     WhichSide::kAhead, &headway_distance);
 
-  std::cout << "Lead car:\n"
-      << "  - lead_car_odom.lane->id().id = " << lead_car_odom.lane->id().id
+  std::cout << "IdmController::ImplDoCalcOutput [" << this->get_name() << "]: "
+      << "Lead car odometry:\n"
+      << "  - lane id: " << lead_car_odom.lane->id().id << "\n"
+      << "  - pos (s, r, h): (" << lead_car_odom.pos.s << ", "
+                                << lead_car_odom.pos.r << ", "
+                                << lead_car_odom.pos.h << ")\n"
+      << "  - frame velocity: " << lead_car_odom.vel.get_value().transpose()
       << std::endl;
 
   const T& s_dot_ego = PoseSelector::GetIsoLaneVelocity(ego_position,
@@ -143,7 +148,8 @@ void IdmController<T>::ImplDoCalcOutput(
   // Compute the acceleration command from the IDM equation.
   (*command)[0] = IdmPlanner<T>::Evaluate(idm_params, s_dot_ego, net_distance,
                                           closing_velocity);
-  std::cout << "IdmController [" << this->get_name() << "]: I/O:\n"
+  std::cout << "IdmController::ImplDoCalcOutput [" << this->get_name() << "]: "
+      << "I/O of call to IdmPlanner<T>::Evaluate():\n"
       << "  - s_dot_ego = " << s_dot_ego << "\n"
       << "  - s_dot_lead = " << s_dot_lead << "\n"
       << "  - headway_distance = " << headway_distance << "\n"

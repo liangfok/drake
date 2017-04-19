@@ -279,8 +279,8 @@ void AddVehicles(RoadNetworkType road_network_type,
         initial_position_0 = initial_positions.at(0);
         initial_position_1 = initial_positions.at(1);
       }
-      std::cout << "initial_position_0 = " << initial_position_0 << std::endl;
-      std::cout << "initial_position_1 = " << initial_position_1 << std::endl;
+      // std::cout << "initial_position_0 = " << initial_position_0 << std::endl;
+      // std::cout << "initial_position_1 = " << initial_position_1 << std::endl;
 
       const LaneDirection lane_direction_0(simulator->FindLane("l:onramp0"),
                                            false /* with s */);
