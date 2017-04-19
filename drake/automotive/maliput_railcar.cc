@@ -115,12 +115,16 @@ void MaliputRailcar<T>::DoCalcOutput(const Context<T>& context,
 
   const LaneDirection& lane_direction =
       context.template get_abstract_state<LaneDirection>(0);
+  // std::cout << "MaliputRailcar::DoCalcOutput: [" << this->get_name() << "] lane_direction.lane->"
 
   // Obtains and updates the output vectors.
   MaliputRailcarState<T>* const state_vector =
       dynamic_cast<MaliputRailcarState<T>*>(
           output->GetMutableVectorData(state_output_port_index_));
   DRAKE_ASSERT(state_vector != nullptr);
+    std::cout << "MaliputRailcar::DoCalcOutput: [" << this->get_name()
+        << "] state_vector->s() = " << state_vector->s()
+        << ", state_vector->speed() = " << state_vector->speed() << std::endl;
   ImplCalcOutput(*state, state_vector);
 
   LaneDirection& lane_direction_output =
