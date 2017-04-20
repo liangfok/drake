@@ -12,7 +12,7 @@ Junction::Junction(RoadGeometry* road_geometry,
     double length,
     double lane_width,
     double shoulder_width)
-  : id_({"Dragway Junction"}),
+  : id_({"DragwayJunction"}),
     road_geometry_(road_geometry),
     segment_(this, num_lanes, length, lane_width, shoulder_width) {
   DRAKE_DEMAND(road_geometry != nullptr);

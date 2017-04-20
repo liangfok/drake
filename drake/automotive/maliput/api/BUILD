@@ -18,6 +18,7 @@ drake_cc_library(
         "lane_data.h",
         "road_geometry.h",
         "segment.h",
+        "to_string_stream.h",
     ],
     deps = [
         "//drake/common",

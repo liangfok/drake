@@ -1,7 +1,10 @@
 #include <cmath>
+#include <memory>
 
 #include <gtest/gtest.h>
 
+#include "drake/automotive/maliput/api/lane_data.h"
+#include "drake/automotive/maliput/api/to_string_stream.h"
 #include "drake/automotive/maliput/dragway/branch_point.h"
 #include "drake/automotive/maliput/dragway/junction.h"
 #include "drake/automotive/maliput/dragway/lane.h"
@@ -231,7 +234,7 @@ TEST_F(MaliputDragwayLaneTest, SingleLane) {
   ASSERT_NE(segment, nullptr);
   EXPECT_EQ(segment->lane(0)->length(), length_);
   EXPECT_EQ(segment->num_lanes(), 1);
-  EXPECT_EQ(segment->id().id, "Dragway_Segment_ID");
+  EXPECT_EQ(segment->id().id, "DragwaySegment");
 
   const int kLaneIndex = 0;
   const api::Lane* lane = segment->lane(kLaneIndex);
@@ -277,7 +280,7 @@ TEST_F(MaliputDragwayLaneTest, TwoLaneDragway) {
   ASSERT_NE(lane_zero, nullptr);
   EXPECT_EQ(lane_zero->length(), length_);
   EXPECT_EQ(segment->num_lanes(), kNumLanes);
-  EXPECT_EQ(segment->id().id, "Dragway_Segment_ID");
+  EXPECT_EQ(segment->id().id, "DragwaySegment");
 
   for (int i = 0; i < kNumLanes; ++i) {
     const api::Lane* lane = segment->lane(i);
@@ -548,6 +551,73 @@ TEST_F(MaliputDragwayLaneTest, TestToLanePosition) {
       EXPECT_EQ(lane_position.h, expected_nearest_position.z);
     }
   }
+}
+
+// Tests the various streaming string operators in Maliput.
+TEST_F(MaliputDragwayLaneTest, TestToStringStream) {
+  const api::RoadGeometryId road_geometry_id({"MyDragway"});
+  const int kNumLanes = 1;
+
+  RoadGeometry road_geometry(road_geometry_id, kNumLanes, length_,
+      lane_width_, shoulder_width_, kLinearTolerance);
+
+  // Checks ability to stream a RoadGeometry.
+  std::stringstream buffer;
+  buffer << road_geometry;
+  EXPECT_EQ(buffer.str(), road_geometry_id.id);
+  buffer.str("");
+  buffer.clear();
+
+  // Checks ability to stream a Junction.
+  ASSERT_GT(road_geometry.num_junctions(), 0);
+  const api::Junction* junction = road_geometry.junction(0);
+  buffer << *junction;
+  EXPECT_EQ(buffer.str(), road_geometry_id.id + "/DragwayJunction");
+  buffer.str("");
+  buffer.clear();
+
+  // Checks ability to stream a Junction.
+  ASSERT_GT(junction->num_segments(), 0);
+  const api::Segment* segment = junction->segment(0);
+  buffer << *segment;
+  EXPECT_EQ(buffer.str(), road_geometry_id.id + "/DragwayJunction/"
+      "DragwaySegment");
+  buffer.str("");
+  buffer.clear();
+
+  // Checks ability to stream a Segment.
+  ASSERT_GT(segment->num_lanes(), 0);
+  const api::Lane* lane = segment->lane(0);
+  buffer << *lane;
+  EXPECT_EQ(buffer.str(), road_geometry_id.id + "/DragwayJunction/"
+      "DragwaySegment/DragwayLane0");
+  buffer.str("");
+  buffer.clear();
+
+  // Checks ability to stream a LaneEnd.
+  std::unique_ptr<api::LaneEnd> lane_end =
+      lane->GetDefaultBranch(api::LaneEnd::kFinish);
+  buffer << *lane_end;
+  EXPECT_TRUE(buffer.str().find(road_geometry_id.id + "/DragwayJunction/"
+      "DragwaySegment/DragwayLane0") != std::string::npos);
+  EXPECT_TRUE(buffer.str().find("which = start") != std::string::npos);
+  buffer.str("");
+  buffer.clear();
+
+  // Checks ability to stream a Rotation.
+
+  // Checks ability to stream a GeoPosition.
+
+  // Checks ability to stream a LanePosition.
+
+  // Checks ability to stream an IsoLaneVelocity.
+
+  // Checks ability to stream a RoadPosition.
+
+  // Checks ability to stream a RBounds.
+
+  std::cout << buffer.str() << std::endl;
+
 }
 
 }  // namespace
