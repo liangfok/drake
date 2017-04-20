@@ -219,7 +219,6 @@ drake_cc_library(
         ":parameters",
         ":vector",
         "//drake/common",
-        "@json//:json",
     ],
 )
 
@@ -284,7 +283,6 @@ drake_cc_library(
         ":diagram_continuous_state",
         ":vector",
         "//drake/common",
-        "@json//:json",
     ],
 )
 

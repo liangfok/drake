@@ -102,14 +102,6 @@ maven_jar(
 )
 
 github_archive(
-    name = "json",
-    repository = "nlohmann/json",
-    commit = "42b4cdd4d00a0289932fe6af1f71c0a875041cc3",
-    build_file = "tools/json.build",
-    sha256 = "84f9247e1470646b52be76506bc4763f6ef267aac991c33175e78130ab9ea515",
-)
-
-github_archive(
     name = "lcm",
     repository = "lcm-proj/lcm",
     commit = "755d8108bf4447d83786e0e6586875371ba859e5",

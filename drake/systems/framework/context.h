@@ -328,6 +328,11 @@ class Context {
     return get_mutable_parameters().get_mutable_numeric_parameter(index);
   }
 
+  /// Returns the number of abstract-valued parameters.
+  int num_abstract_parameters() const {
+    return get_parameters().num_abstract_parameters();
+  }
+
   /// Returns a const reference to the abstract-valued parameter at @p index.
   /// Asserts if @p index doesn't exist.
   const AbstractValue& get_abstract_parameter(int index) const {
@@ -400,11 +405,15 @@ class Context {
     // In the abstract-valued case, there is nothing else to check.
   }
 
-  friend std::ostream& operator<<(std::ostream& out,
-                                  const Context<T>& context) {
+  std::string ToString(const std::string& prefix) const {
     std::stringstream result;
-    result << " \"Time\" : " << context.get_time() << ",";
-    result << " \"State\" : ";
+    result << prefix << "Time: " << get_time() << "\n";
+    result << prefix << "Number of numeric parameters: "
+           << num_numeric_parameters() << "\n";
+    for (int i = 0; i < num_numeric_parameters(); ++i) {
+
+    }
+    result << prefix << "State: " << ;
     if (context.is_stateless()) {
       result << "\"None\"";
     } else {
