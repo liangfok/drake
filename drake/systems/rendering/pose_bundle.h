@@ -59,20 +59,15 @@ class PoseBundle {
 
   std::string ToString(const Isometry3<T> pose, const std::string& prefix = "")
       const {
-    std::cout << "\n\nObtaining string of isometry3d:\n" << pose.matrix() << std::endl;
     std::stringstream temp_buffer;
     temp_buffer << pose.matrix();
-    // std::stringstream result_buffer;
-    // std::istringstream result_stream(temp_buffer.str());
     std::string s;
     std::stringstream result_buffer;
     while (std::getline(temp_buffer, s, '\n')) {
-      if (result_buffer.gcount() != 0) {
-        result_buffer << "\n";
-      }
-      result_buffer << prefix << s;
+      // std::cout << "*** Read line " << s << std::endl;
+      result_buffer << prefix << s << "\n";
     }
-    std::cout << "\n\nResult:\n" << result_buffer.str() << std::endl;
+    // std::cout << "\n\nResult:\n" << result_buffer.str();
     return result_buffer.str();
   }
 
@@ -81,12 +76,12 @@ class PoseBundle {
     std::stringstream buffer;
     buffer << prefix << "PoseBundle of size " << get_num_poses() << "\n";
     for (int i = 0; i < get_num_poses(); ++i) {
-      buffer << prefix << "  - " << i << ":\n";
-      buffer << prefix << "    - Name: " << names_.at(i) << "\n";
-      buffer << prefix << "    - ID: " << ids_.at(i) << "\n";
-      buffer << prefix << "    - Pose:\n" << ToString(poses_.at(i), "      ")
-          << "\n";
-      buffer << prefix << "    - Velocity: " << velocities_.at(i) << std::endl;
+      buffer << prefix << "  - Index " << i << ":\n"
+             << prefix << "    - Name: " << names_.at(i) << "\n"
+             << prefix << "    - ID: " << ids_.at(i) << "\n"
+             << prefix << "    - Pose:\n"
+             << ToString(poses_.at(i), prefix + "      ")
+             << prefix << "    - Velocity: " << velocities_.at(i) << "\n";
     }
     return buffer.str();
   }

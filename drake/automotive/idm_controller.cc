@@ -119,7 +119,7 @@ void IdmController<T>::ImplDoCalcOutput(
       << "Obtaining lead car odometry:\n"
       << "  - ego_pose = " << ego_pose << "\n"
       << "  - ego_velocity = " << ego_velocity << "\n"
-      << "  - traffic_poses = " << traffic_poses << "\n"
+      << "  - traffic_poses =\n" << traffic_poses.ToString("    ") << "\n"
       << "  - scan_distance = " << scan_distance << "\n"
       << "  - headway_distance = " << headway_distance << std::endl;
   // Find the single closest car ahead.
