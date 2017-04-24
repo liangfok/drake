@@ -105,6 +105,8 @@ class AbstractValue {
     return std::unique_ptr<AbstractValue>(new Value<T>(value));
   }
 
+  virtual std::string ToString(const std::string& prefix) const;
+
  private:
   // Casts this to a Value<T>*.  Throws std::bad_cast if the cast fails.
   template <typename T>
