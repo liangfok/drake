@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include "drake/automotive/maliput/utility/generate_obj.h"
+
 namespace drake {
 namespace automotive {
 namespace {
@@ -29,6 +31,10 @@ GTEST_TEST(MonolaneOnrampMergeTest, TestDefaultAndNonDefaultAttributes) {
   std::unique_ptr<const maliput::api::RoadGeometry> rg =
       merge_example->BuildOnramp();
   EXPECT_NE(nullptr, rg);
+
+  maliput::utility::ObjFeatures features;
+  maliput::utility::GenerateObjFile(rg.get(), "/tmp/road_geo/" /* dir path */,
+      "merge", features);
 
   // Check the correctness of the default parameters.
   EXPECT_EQ(
