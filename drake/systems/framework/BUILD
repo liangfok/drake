@@ -557,8 +557,10 @@ drake_cc_googletest(
         ":leaf_context",
         ":system",
         "//drake/common",
+        "//drake/systems/analysis",
         "//drake/systems/framework/test_utilities",
         "//drake/systems/primitives:constant_vector_source",
+        "//drake/systems/primitives:signal_logger",
     ],
 )
 
