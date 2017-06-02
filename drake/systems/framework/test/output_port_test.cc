@@ -8,6 +8,7 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
+#include "drake/systems/analysis/simulator.h"
 #include "drake/systems/framework/basic_vector.h"
 #include "drake/systems/framework/context.h"
 #include "drake/systems/framework/diagram.h"
@@ -19,6 +20,7 @@
 #include "drake/systems/framework/test_utilities/my_vector.h"
 #include "drake/systems/framework/value.h"
 #include "drake/systems/primitives/constant_vector_source.h"
+#include "drake/systems/primitives/signal_logger.h"
 
 namespace drake {
 namespace systems {
@@ -267,6 +269,38 @@ GTEST_TEST(DiagramOutputPortTest, Nested) {
   EXPECT_EQ(*int0, 3);  // Make sure we got the right Context.
   EXPECT_EQ(*int1, 1);
   EXPECT_EQ(*int2, 2);
+}
+
+// This is a bad output allocator that returns nullptr.
+unique_ptr<BasicVector<double>> bad_allocator(const Context<double>&) {
+  return nullptr;
+}
+
+// This is a standard callback method that sets a BasicVector's value.
+void innocent_calc_callback(const Context<double>& context,
+    BasicVector<double>* value) {
+  value->SetZero();
+}
+
+class SystemWithBadOutputAllocator : public LeafSystem<double> {
+ public:
+  SystemWithBadOutputAllocator() {
+    DeclareVectorOutputPort(bad_allocator, 1, innocent_calc_callback);
+  }
+};
+
+// Checks what happens when a defective allocator returns nullptr.
+GTEST_TEST(FaultyAllocatorTest, BasicTest) {
+  DiagramBuilder<double> builder;
+  auto bad_system = builder.AddSystem<SystemWithBadOutputAllocator>();
+  auto signal_logger =
+      builder.AddSystem<SignalLogger>(bad_system->get_output_port(0).size());
+  builder.Connect(bad_system->get_output_port(0),
+                  signal_logger->get_input_port(0));
+  std::unique_ptr<systems::Diagram<double>> diagram = builder.Build();
+  Simulator<double> simulator(*diagram);
+  simulator.Initialize();
+  simulator.StepTo(0.1);
 }
 
 }  // namespace
