@@ -39,6 +39,16 @@ the commands mentioned in the instructions that are linked to below.
     from_source_ros_indigo
     from_source_ros_kinetic
 
+After following the above-linked instructions, set environment variable
+``DRAKE_RESOURCE_ROOT`` as follows::
+
+    export DRAKE_RESOURCE_ROOT=$HOME/dev/drake_catkin_workspace/src/drake
+
+You can also update your ``~/.bashrc`` to avoid needing to set the environment
+variable each time you open a new terminal::
+
+    echo "export DRAKE_RESOURCE_ROOT=$HOME/dev/drake_catkin_workspace/src/drake" >> ~/.bashrc
+
 .. _drake_ros_additional_notes:
 
 Additional Notes
