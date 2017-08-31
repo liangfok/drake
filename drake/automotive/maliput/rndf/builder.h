@@ -173,8 +173,8 @@ class Builder {
   // @pre The given @p lane must not be a nullptr.
   // @pre The given @p branch_point must not be a nullptr.
   // @warning This method will abort if preconditions are not met.
-  void AttachLaneEndToBranchPoint(const api::LaneEnd::Which end, Lane* lane,
-                                  BranchPoint* branch_point);
+  // void AttachLaneEndToBranchPoint(const api::LaneEnd::Which end, Lane* lane,
+  //                                 BranchPoint* branch_point);
 
   // Builds or updates a BranchPoint given a @p connection and the corresponding
   // @p lane. The former provides the start and end waypoints of the lane,
@@ -190,10 +190,10 @@ class Builder {
   // @pre The given @p branch_point_map must not be a nullptr.
   // @pre The given @p road_geometry must not be a nullptr.
   // @warning This method will abort if preconditions are not met.
-  void BuildOrUpdateBranchpoints(
-      Connection* connection, Lane* lane,
-      std::map<std::string, BranchPoint*>* branch_point_map,
-      RoadGeometry* road_geometry);
+  // void BuildOrUpdateBranchpoints(
+  //     Connection* connection, Lane* lane,
+  //     std::map<std::string, BranchPoint*>* branch_point_map,
+  //     RoadGeometry* road_geometry);
 
   // Builds a Lane from the given @p connection into the parent @p segment.
   // @param connection A Connection that holds the waypoints to build the
@@ -202,7 +202,7 @@ class Builder {
   // @return The built Lane.
   // @pre The given @p segment must not be a nullptr.
   // @warning This method will abort if preconditions are not met.
-  Lane* BuildConnection(const Connection& connection, Segment* segment);
+  // Lane* BuildConnection(const Connection& connection, Segment* segment);
 
   // Builds an ignition::math::Spline from a set of @p waypoints.
   //
@@ -213,8 +213,8 @@ class Builder {
   // account.
   // @pre There must be at least two (2) valid waypoints in @p waypoints.
   // @warning This method will abort if any preconditions are not met.
-  std::unique_ptr<ignition::math::Spline> CreateSpline(
-      const std::vector<DirectedWaypoint>& waypoints);
+  // std::unique_ptr<ignition::math::Spline> CreateSpline(
+  //     const std::vector<DirectedWaypoint>& waypoints);
 
   // Identifies the @p connections that come first in the direction the whole
   // collection of connections flows, by computing the projection of every
@@ -228,19 +228,19 @@ class Builder {
   // first. When the collection is empty, it means that all the @p connections'
   // waypoints are in line with the @p connections' normal (thus no one comes
   // first).
-  std::vector<int> GetInitialConnectionToProcess(
-      const std::vector<Connection>& connections, int index);
+  // std::vector<int> GetInitialConnectionToProcess(
+  //     const std::vector<Connection>& connections, int index);
 
   // Interpolates tangents for each of the @p waypoints using a spline curve,
   // applying CreateSpline() with the @p waypoints' positions only.
   // @pre The given @p waypoints collection must not be a nullptr.
   // @warning This method will abort if any preconditions are not met.
-  void BuildTangentsForWaypoints(std::vector<DirectedWaypoint>* waypoints);
+  // void BuildTangentsForWaypoints(std::vector<DirectedWaypoint>* waypoints);
 
   // Computes the euclidean distance between @p base and @p target waypoints,
   // projected along @p base's tangent.
-  double ComputeProjectedDistance(const DirectedWaypoint& base,
-                                  const DirectedWaypoint& target) const;
+  // double ComputeProjectedDistance(const DirectedWaypoint& base,
+  //                                 const DirectedWaypoint& target) const;
 
   // Adds either invalid or interpolated extra waypoints on those @p connections
   // not listed in the @p ids of the @p connections that come first for the
@@ -254,8 +254,8 @@ class Builder {
   // @param index The index of the @p connection's waypoints to look at.
   // @pre The given @p connections collection must not be a nullptr.
   // @warning This method will abort execution if any preconditions are not met.
-  void AddWaypointIfNecessary(const std::vector<int>& ids,
-                              std::vector<Connection>* connections, int index);
+  // void AddWaypointIfNecessary(const std::vector<int>& ids, int,
+  //                             std::vector<Connection>* connections, int index);
 
   // Adds waypoints to the given @p connections so as to ensure that their
   // spatial distribution is akin to a grid (thus enabling index operations).
@@ -263,8 +263,8 @@ class Builder {
   // if necessary.
   // @pre The given @p connections collection must not be a nullptr.
   // @warning This method will abort execution if any preconditions are not met.
-  void CreateNewControlPointsForConnections(
-      std::vector<Connection>* connections);
+  // void CreateNewControlPointsForConnections(
+  //     std::vector<Connection>* connections);
 
   // Orders a collection of @p ids, each identifying a connection at the
   // same index in @p connections, in a right to left sense. To perform such
@@ -273,8 +273,8 @@ class Builder {
   // @param ids The collection of ids for each one of the @p connections.
   // @pre The given @p ids collection must not be a nullptr.
   // @warning This method will abort execution if any preconditions are not met.
-  void OrderConnectionIds(const std::vector<Connection>& connections,
-                          std::vector<int>* ids);
+  // void OrderConnectionIds(const std::vector<Connection>& connections,
+  //                         std::vector<int>* ids);
 
   // Computes the momentum @f$ \tau^W @f$ exerted by the fictitious unitary
   // force @f$ f^W @f$ on @p waypoint @f$ W @f$ around the @p center_of_rotation
@@ -283,16 +283,16 @@ class Builder {
   // waypoints are on the @f$ z = 0 @f$ plane and the torque will always be
   // applied entirely on the z-axis.
   // @return The computed momentum's z-axis component.
-  double CalculateMomentum(const ignition::math::Vector3d& center_of_rotation,
-                           const DirectedWaypoint& waypoint);
+  // double CalculateMomentum(const ignition::math::Vector3d& center_of_rotation,
+  //                          const DirectedWaypoint& waypoint);
 
   // Computes the momentum sum of all the @p waypoints around @p origin
   // using CalculateMomentum(). This is helpful to determine the relative
   // direction of a given connection with respect to adjacent ones (lanes in
   // a segment).
-  double CalculateConnectionMomentum(
-      const ignition::math::Vector3d& origin,
-      const std::vector<DirectedWaypoint>& waypoints);
+  // double CalculateConnectionMomentum(
+  //     const ignition::math::Vector3d& origin,
+  //     const std::vector<DirectedWaypoint>& waypoints);
 
   // Establishes the relative direction for each connection in @p connections.
   //
@@ -303,7 +303,7 @@ class Builder {
   // connections' waypoints are disposed with respect to the first connection.
   // @pre The given @p connections collection must not be a nullptr.
   // @warning This method will abort execution if any preconditions are not met.
-  void SetInvertedConnections(std::vector<Connection>* connections);
+  // void SetInvertedConnections(std::vector<Connection>* connections);
 
   // Groups @p connections in separate @p connection_groups based on
   // their relative direction.
@@ -312,9 +312,9 @@ class Builder {
   // to connection groups.
   // @pre The given @p connection_groups collection must not be a nullptr.
   // @warning This method will abort execution if any preconditions are not met.
-  void GroupConnectionsByDirection(
-      const std::vector<Connection>& connections,
-      std::map<int, std::vector<Connection>>* connection_groups) const;
+  // void GroupConnectionsByDirection(
+  //     const std::vector<Connection>& connections,
+  //     std::map<int, std::vector<Connection>>* connection_groups) const;
 
   // Creates a pair of waypoints based on the given @p exit and @p entry
   // waypoints, keeping their heading but affecting tangent norms to
@@ -324,8 +324,8 @@ class Builder {
   // @param entry The end DirectedWaypoint of the lane's reference curve.
   // @return A vector with the two (2) waypoints that represent the
   // extents of the connection.
-  std::vector<DirectedWaypoint> CreateDirectedWaypointsForConnections(
-      const DirectedWaypoint& exit, const DirectedWaypoint& entry) const;
+  // std::vector<DirectedWaypoint> CreateDirectedWaypointsForConnections(
+  //     const DirectedWaypoint& exit, const DirectedWaypoint& entry) const;
 
   // The tolerance used by the RoadGeometry to check linear invariants.
   const double linear_tolerance_{};
