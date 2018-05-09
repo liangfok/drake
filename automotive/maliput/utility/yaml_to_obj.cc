@@ -7,6 +7,7 @@
 #include <gflags/gflags.h>
 #include "yaml-cpp/yaml.h"
 
+#include "drake/automotive/maliput/api/branch_point.h"  // TEMP!
 #include "drake/automotive/maliput/monolane/loader.h"
 #include "drake/automotive/maliput/multilane/builder.h"
 #include "drake/automotive/maliput/multilane/loader.h"
@@ -27,6 +28,9 @@ DEFINE_double(min_grid_resolution,
               drake::maliput::utility::ObjFeatures().min_grid_resolution,
               "Minimum number of grid-units in either lateral or longitudinal "
               "direction in the rendered mesh covering the road surface");
+DEFINE_bool(draw_elevation_bounds,
+            drake::maliput::utility::ObjFeatures().draw_elevation_bounds,
+            "Whether to draw the elevation bounds");
 
 namespace drake {
 namespace maliput {
@@ -92,9 +96,33 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  std::stringstream ss;
+  ss << "RoadGeometry Stats:";
+  for (int i = 0; i < rg->num_junctions(); ++i) {
+    const api::Junction* junction = rg->junction(i);
+    ss << "\n  - Junction: \"" << junction->id().string() << "\"";
+    for (int j = 0; j < junction->num_segments(); ++j) {
+      const api::Segment* segment = junction->segment(j);
+      ss << "\n    - Segment: \"" << segment->id().string() << "\"";
+      for (int k = 0; k < segment->num_lanes(); ++k) {
+        const api::Lane* lane = segment->lane(k);
+        ss << "\n      - Lane: \"" << lane->id().string() << "\"";
+        const api::LaneEndSet* end_set =
+            lane->GetOngoingBranches(api::LaneEnd::kFinish);
+        for (int l = 0; l < end_set->size(); ++l) {
+          const api::LaneEnd& lane_end = end_set->get(l);
+          ss << "\n        - LaneEnd: \""
+             << lane_end.lane->id().string() << "\"";
+        }
+      }
+    }
+  }
+  drake::log()->info(ss.str());
+
   utility::ObjFeatures features;
   features.max_grid_unit = FLAGS_max_grid_unit;
   features.min_grid_resolution = FLAGS_min_grid_resolution;
+  features.draw_elevation_bounds = FLAGS_draw_elevation_bounds;
 
   drake::log()->info("Generating OBJ.");
   GenerateObjFile(rg.get(), FLAGS_obj_dir, FLAGS_obj_file, features);
