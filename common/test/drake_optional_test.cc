@@ -17,6 +17,12 @@ GTEST_TEST(OptionalTest, BasicTest) {
 
   foo.reset();
   EXPECT_FALSE(foo.has_value());
+
+  constexpr int kBarValue{2};
+  optional<int> bar = make_optional<int>(kBarValue);
+  EXPECT_EQ(!!bar, true);
+  EXPECT_TRUE(bar.has_value());
+  EXPECT_EQ(*bar, kBarValue);
 }
 
 }  // namespace

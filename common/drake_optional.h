@@ -21,6 +21,9 @@ namespace drake {
 template <typename T>
 using optional = stx::optional<T>;
 
+template <typename T>
+using make_optional = stx::make_optional<T>;
+
 constexpr auto nullopt = stx::nullopt;
 
 }  // namespace drake
