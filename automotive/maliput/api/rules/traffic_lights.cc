@@ -29,6 +29,21 @@ Bulb::Bulb(const Bulb::Id& id, const GeoPosition& position_bulb_group,
       color_(color),
       type_(type) {}
 
+// BulbGroup::BulbGroup(const BulbGroup::Id& id,
+//  const GeoPosition& position_traffic_light,
+//  const Rotation& orientation_traffic_light, const std::vector<Bulb>& bulbs)
+//     : id_(id), position_traffic_light_(position_traffic_light_),
+//       orientation_traffic_light_(orientation_traffic_light),
+//       bulbs_(bulbs) {}
+
+// TrafficLight::TrafficLight(const TrafficLight::Id& id,
+//  const GeoPosition& position_road_network,
+//  const Rotation& orientation_road_network,
+//  const std::vector<BulbGroup>& bulb_groups)
+//     : id_(id), position_road_network_(position_road_network),
+//       orientation_road_network_(orientation_road_network),
+//       bulb_groups_(bulb_groups) {}
+
 }  // namespace rules
 }  // namespace api
 }  // namespace maliput

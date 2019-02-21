@@ -199,25 +199,20 @@ inline ::testing::AssertionResult IsEqual(const char* a_expression,
 }
 
 /// Predicate-formatter which tests equality of BulbType.
-inline ::testing::AssertionResult IsEqual(const char* a_expression,
-                                          const char* b_expression,
-                                          const BulbType& a,
-                                          const BulbType& b) {
+inline ::testing::AssertionResult IsEqual(
+    const char* a_expression, const char* b_expression,
+    const BulbType& a, const BulbType& b) {
   unused(a_expression, b_expression);
   return ::testing::internal::CmpHelperEQ(a_expression, b_expression, a, b);
 }
 
 /// Predicate-formatter which tests equality of Bulb.
-inline ::testing::AssertionResult IsEqual(const char* a_expression,
-                                          const char* b_expression,
-                                          const Bulb& a, const Bulb& b) {
+inline ::testing::AssertionResult IsEqual(
+    const char* a_expression, const char* b_expression,
+    const Bulb& a, const Bulb& b) {
   unused(a_expression, b_expression);
   AssertionResultCollector c;
   MALIPUT_ADD_RESULT(c, MALIPUT_IS_EQUAL(a.id(), b.id()));
-  MALIPUT_ADD_RESULT(
-      c, MALIPUT_IS_EQUAL(a.position_bulb_group(), b.position_bulb_group()));
-  MALIPUT_ADD_RESULT(c, MALIPUT_IS_EQUAL(a.orientation_bulb_group(),
-                                         b.orientation_bulb_group()));
   MALIPUT_ADD_RESULT(c, MALIPUT_IS_EQUAL(a.color(), b.color()));
   MALIPUT_ADD_RESULT(c, MALIPUT_IS_EQUAL(a.type(), b.type()));
   return c.result();
