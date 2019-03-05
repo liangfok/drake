@@ -1,0 +1,101 @@
+# Models an example X-intersection between roads "A" and "B". Each road has two
+# lanes going in opposite directions. Road "A" goes north & south, road "B" goes
+# east & west. This intersection allows right turns on red.
+#
+# For simplicity, the RightOfWayRule IDs and the Lane IDs are identical.
+Intersections:
+- ID: Example_Intersection
+  RightOfWayRules:
+  # Straight-through rules.
+  - ID: Road_A_North
+    States:
+      Go: []
+      Stop: []
+      Default: Stop
+    Zone:
+    - Lane: Road_A_North
+  - ID: Road_A_South
+    States:
+      Go: []
+      Stop: []
+      Default: Stop
+    Zone:
+    - Lane: Road_A_South
+  - ID: Road_B_East
+    States:
+      Go: []
+      Stop: []
+      Default: Stop
+    Zone:
+    - Lane: Road_B_East
+  - ID: Road_B_West
+    States:
+      Go: []
+      Stop: []
+      Default: Stop
+    Zone:
+    - Lane: Road_B_West
+  # Left-turn rules.
+  - ID: Road_A_North_Left_Turn
+    States:
+      Go: [Road_A_South]
+      Stop: []
+      Default: Stop
+    Zone:
+    - Lane: Road_A_North_Left_Turn
+  - ID: Road_A_South_Left_Turn
+    States:
+      Go: [Road_A_North]
+      Stop: []
+      Default: Stop
+    Zone:
+    - Lane: Road_A_South_Left_Turn
+  - ID: Road_B_East_Left_Turn
+    States:
+      Go: [Road_B_West_Straight]
+      Stop: []
+      Default: Stop
+    Zone:
+    - Lane: Road_B_East_Left_Turn
+  - ID: Road_B_West_Left_Turn
+    States:
+      Go: [Road_B_East_Straight]
+      Stop: []
+    Zone:
+    - Lane: Road_B_West_Left_Turn
+  # Right-turn rules. They only have "Go" state to model an intersection where
+  # right turns are always allowed. While right turns are always allowed, they
+  # must yield to cross traffic.
+  - ID: Road_A_North_Right_Turn
+    States:
+      Go: [Road_B_East]
+    Zone:
+    - Lane: Road_A_North_Right_Turn
+  - ID: Road_A_South_Right_Turn
+    States:
+      Go: [Road_B_West]
+    Zone:
+    - Lane: Road_A_South_Right_Turn
+  - ID: Road_B_East_Right_Turn
+    States:
+      Go: [Road_A_South]
+    Zone:
+    - Lane: Road_B_East_Right_Turn
+  - ID: Road_B_West_Right_Turn
+    States:
+      Go: [Road_A_North]
+    Zone:
+    - Lane: Road_B_West_Right_Turn
+  Phases:
+  - ID: Road_A_Go
+    RightOfWayRuleStates: {Road_A_North: Go, Road_A_South: Go,
+                           Road_A_North_Left_Turn: Go,
+                           Road_A_South_Left_Turn: Go}
+  - ID: Road_B_Go
+    RightOfWayRuleStates: {Road_B_East: Go, Road_B_West: Go,
+                           Road_B_East_Left_Turn: Go,
+                           Road_B_West_Left_Turn: Go}
+  PhaseTransitionGraph:
+    Road_A_Go: [Road_B_Go]
+    Road_B_Go: [Road_A_Go]
+
