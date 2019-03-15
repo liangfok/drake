@@ -1222,18 +1222,20 @@ unblocked by stopped traffic.  Both rules' static states are of type
 traffic never stops, but instead speeds up to seamlessly merge into
 the freeway flow.
 
-*** /(TODO)/ =DirectionUsageRule=: Direction/Usage
+*** =DirectionUsageRule=: Direction/Usage
 /Captures allowed direction-of-travel./
    * id
    * zone (=LaneSRange=)
-   * allowed use:
+   * allowed use
      * /bidirectional/ (e.g., non-striped single-lane residential street)
      * /unidirectional, s increasing/
      * /unidirectional, s decreasing/
      * /bidirectional, turning-only/
      * /no-traffic/ (e.g., median strip)
      * /parking-lane/
-   * time-of-day/calendar condition?
+   * severity
+     * strict - direction preference should never be violated
+     * preferred - direction preference can be violated when safe
 
 *** /(TODO)/ =LaneChangeRule=: Lane-change/Passing Restrictions
 /Captures restrictions on lateral/adjacent lane transitions./
