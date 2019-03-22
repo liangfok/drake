@@ -25,6 +25,7 @@ class RoadNetwork {
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(RoadNetwork)
 
   /// Constructs an RoadNetwork instance. All parameters are required.
+  /// @p direction_usage_rules must cover the whole @p road_geometry.
   RoadNetwork(std::unique_ptr<const RoadGeometry> road_geometry,
               std::unique_ptr<const rules::RoadRulebook> rulebook,
               std::vector<std::unique_ptr<Intersection>> intersections,

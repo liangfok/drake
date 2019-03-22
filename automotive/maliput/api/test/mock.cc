@@ -1,5 +1,6 @@
 #include "drake/automotive/maliput/api/test/mock.h"
 
+#include <unordered_map>
 #include <vector>
 
 #include "drake/automotive/maliput/api/branch_point.h"
@@ -27,6 +28,11 @@ class MockIdIndex final : public RoadGeometry::IdIndex {
 
  private:
   const Lane* DoGetLane(const LaneId&) const override { return nullptr; }
+
+  const std::unordered_map<LaneId, const Lane*>& DoGetLanes() const {
+    return lane_map_;
+  }
+
   const Segment* DoGetSegment(const SegmentId&) const override {
     return nullptr;
   };
@@ -36,6 +42,8 @@ class MockIdIndex final : public RoadGeometry::IdIndex {
   const BranchPoint* DoGetBranchPoint(const BranchPointId&) const override {
     return nullptr;
   }
+
+  const std::unordered_map<LaneId, const Lane*> lane_map_;
 };
 
 class MockRoadGeometry final : public RoadGeometry {

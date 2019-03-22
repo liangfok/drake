@@ -35,23 +35,20 @@ RoadNetwork::RoadNetwork(
     intersections_map_[intersections_.at(i)->id()] = intersections_.at(i).get();
   }
 
-  for (int ji = 0; ji < road_geometry_->num_junctions(); ++ji) {
-    const api::Junction* junction = road_geometry->junction(ji);
-    for (int si = 0; si < junction->num_segments(); ++si) {
-      const api::Segment* segment = junction->segment(si);
-      for (int li = 0; li < segment->num_lanes(); ++li) {
-        const api::Lane* lane = segment->lane(li);
-        auto RuleIdMatchesLaneId = [lane](rules::DirectionUsageRule rule) {
-          return rule.zone().lane_id() == lane->id();
-        };
-        auto lane_rule = std::find_if(direction_usage_rules_.begin(),
-            direction_usage_rules_.end(), RuleIdMatchesLaneId);
-        if (lane_rule == direction_usage_rules_.end()) {
-          throw std::runtime_error(
-            "All Lanes must be present in a DirectionUsageRule");
-        }
-      }
-    }
+  // Confirms full DirectionUsageRule coverage. Currently, this is determined by
+  // verifying that each Lane within the RoadGeometry has an associated
+  // DirectionUsageRule. In the future, this check could be made even more
+  // rigorous by confirming that the union of all DirectionUsageRule zones
+  // covers the whole RoadGeometry.
+  const auto& lanes_map = road_geometry_->ById().GetLanes();
+  for (const auto& lane_map : lanes_map) {
+    const LaneId lane_id = lane_map.first;
+    const auto RuleIdMatchesLaneId = [&](rules::DirectionUsageRule& rule) {
+      return rule.zone().lane_id() == lane_id;
+    };
+    const auto lane_rule = std::find_if(direction_usage_rules_.begin(),
+        direction_usage_rules_.end(), RuleIdMatchesLaneId);
+    DRAKE_THROW_UNLESS(lane_rule != direction_usage_rules_.end());
   }
 }
 
