@@ -16,8 +16,9 @@ namespace api {
 namespace test {
 namespace {
 
-using rules::LaneSRange;
+using rules::DirectionUsageRule;
 using rules::RightOfWayRule;
+using rules::SpeedLimitRule;
 
 class MockIdIndex final : public RoadGeometry::IdIndex {
  public:
@@ -69,16 +70,19 @@ class MockRoadRulebook final : public rules::RoadRulebook {
                            double) const override {
     return {{}, {}};
   }
-  rules::RightOfWayRule DoGetRule(
-      const rules::RightOfWayRule::Id&) const override {
+  RightOfWayRule DoGetRule(
+      const RightOfWayRule::Id&) const override {
     return Rule();
   }
-  rules::SpeedLimitRule DoGetRule(
-      const rules::SpeedLimitRule::Id&) const override {
-    const rules::LaneSRange kZone(rules::LaneSRange(LaneId("a"), {0., 9.}));
-    return rules::SpeedLimitRule(rules::SpeedLimitRule::Id("some_id"), kZone,
-                                 rules::SpeedLimitRule::Severity::kStrict, 33.,
-                                 77.);
+  SpeedLimitRule DoGetRule(const SpeedLimitRule::Id&) const override {
+    return SpeedLimitRule(rules::SpeedLimitRule::Id("some_id"),
+                          CreateLaneSRange(),
+                          rules::SpeedLimitRule::Severity::kStrict, 33.,
+                          77.);
+  }
+
+  DirectionUsageRule DoGetRule(const DirectionUsageRule::Id&) const override {
+    return CreateDirectionUsageRule();
   }
 };
 
@@ -140,9 +144,14 @@ class MockIntersection final : public Intersection {
 
 }  // namespace
 
-rules::LaneSRoute LaneSRoute() {
+rules::LaneSRoute CreateLaneSRoute() {
   return rules::LaneSRoute(
-      {LaneSRange(LaneId("a"), {0., 9.}), LaneSRange(LaneId("b"), {17., 12.})});
+      {rules::LaneSRange(LaneId("a"), {0., 9.}),
+       rules::LaneSRange(LaneId("b"), {17., 12.})});
+}
+
+rules::LaneSRange CreateLaneSRange() {
+  return rules::LaneSRange(LaneId("a"), {0., 9.});
 }
 
 RightOfWayRule::State::YieldGroup YieldGroup2() {
@@ -161,9 +170,22 @@ RightOfWayRule::State YieldState() {
 }
 
 RightOfWayRule Rule() {
-  return RightOfWayRule(RightOfWayRule::Id("mock_id"), LaneSRoute(),
+  return RightOfWayRule(RightOfWayRule::Id("mock_id"), CreateLaneSRoute(),
                         RightOfWayRule::ZoneType::kStopExcluded,
                         {NoYieldState(), YieldState()});
+}
+
+DirectionUsageRule::State CreateDirectionUsageRuleState() {
+  return DirectionUsageRule::State(
+    DirectionUsageRule::State::Id("dur_state"),
+    DirectionUsageRule::State::Type::kWithS,
+    DirectionUsageRule::State::Severity::kStrict);
+}
+
+DirectionUsageRule CreateDirectionUsageRule() {
+  return DirectionUsageRule(DirectionUsageRule::Id("dur_id"),
+                            CreateLaneSRange(),
+                            {CreateDirectionUsageRuleState()});
 }
 
 std::unique_ptr<RoadGeometry> CreateRoadGeometry() {
