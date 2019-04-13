@@ -24,7 +24,7 @@ enum class BulbColor {
 };
 
 /// Maps BulbColor enums to string representations.
-std::unordered_map<BulbColor, const char*, DefaultHash> BulbColorMapper();
+static const std::unordered_map<BulbColor, const char*, DefaultHash>& BulbColorMapper();
 
 /// Defines the possible bulb types.
 enum class BulbType {
@@ -34,12 +34,14 @@ enum class BulbType {
 
 /// Maps BulbType enums to string representations.
 std::unordered_map<BulbType, const char*, DefaultHash> BulbTypeMapper();
+// static const std::unordered_map<BulbType, const char*, DefaultHash>& BulbTypeMapper();
 
 /// Defines the possible bulb states.
 enum class BulbState { kOff = 0, kOn, kBlinking };
 
 /// Maps BulbState enums to string representations.
 std::unordered_map<BulbState, const char*, DefaultHash> BulbStateMapper();
+// static const std::unordered_map<BulbState, const char*, DefaultHash>& BulbStateMapper();
 
 /// Models a bulb within a bulb group.
 class Bulb final {

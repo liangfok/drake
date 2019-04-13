@@ -1,22 +1,28 @@
 #include "drake/automotive/maliput/api/rules/traffic_lights.h"
 
 #include <algorithm>
+#include <initializer_list>
 #include <utility>
 
 #include "drake/common/drake_assert.h"
 #include "drake/common/drake_throw.h"
+#include "drake/common/never_destroyed.h"
 
 namespace drake {
 namespace maliput {
 namespace api {
 namespace rules {
 
-std::unordered_map<BulbColor, const char*, DefaultHash> BulbColorMapper() {
-  std::unordered_map<BulbColor, const char*, DefaultHash> result;
-  result.emplace(BulbColor::kRed, "Red");
-  result.emplace(BulbColor::kYellow, "Yellow");
-  result.emplace(BulbColor::kGreen, "Green");
-  return result;
+using BulbColorDict = std::unordered_map<BulbColor, const char*, DefaultHash>;
+
+const std::unordered_map<BulbColor, const char*, DefaultHash>& BulbColorMapper() {
+  static const never_destroyed<BulbColorDict> instance{
+    std::initializer_list<BulbColorDict::value_type>{
+      {BulbColor::kRed, "Red"},
+      {BulbColor::kYellow, "Yellow"},
+      {BulbColor::kGreen, "Green"},
+  }};
+  return instance.access();
 }
 
 std::unordered_map<BulbType, const char*, DefaultHash> BulbTypeMapper() {
@@ -25,14 +31,34 @@ std::unordered_map<BulbType, const char*, DefaultHash> BulbTypeMapper() {
   result.emplace(BulbType::kArrow, "Arrow");
   return result;
 }
+// using BulbTypeDict = std::unordered_map<BulbType, const char*, DefaultHash>;
+
+// const BulbTypeDict& BulbTypeMapper() {
+//   static const never_destroyed<BulbTypeDict> instance{
+//     std::initializer_list<BulbTypeDict::value_type>{
+//       {BulbType::kRound, "Round"},
+//       {BulbType::kArrow, "Arrow"},
+//   }};
+//   return instance.access();
+// }
 
 std::unordered_map<BulbState, const char*, DefaultHash> BulbStateMapper() {
   std::unordered_map<BulbState, const char*, DefaultHash> result;
   result.emplace(BulbState::kOff, "Off");
   result.emplace(BulbState::kOn, "On");
   result.emplace(BulbState::kBlinking, "Blinking");
-  return result;
 }
+// using BulbStateDict = std::unordered_map<BulbState, const char*, DefaultHash>;
+
+// const BulbStateDict& BulbStateMapper() {
+//   static const never_destroyed<BulbStateDict> instance{
+//     std::initializer_list<BulbStateDict::value_type>{
+//       {BulbState::kOff, "Off"},
+//       {BulbState::kOn, "On"},
+//       {BulbState::kBlinking, "Blinking"},
+//   }};
+//   return result;
+// }
 
 Bulb::Bulb(const Bulb::Id& id, const GeoPosition& position_bulb_group,
            const Rotation& orientation_bulb_group, const BulbColor& color,
